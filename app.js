@@ -47,7 +47,6 @@ const FILTERS = [
   }
 ];
 
-// EXAMPLE DATA ONLY — replace with sourced scientific data.
 const SITES = [
   {
     name: "Atacama Desert",
@@ -248,8 +247,6 @@ function renderFilters() {
   });
 }
 
-// Calculate a simple similarity score from active filters.
-// This is illustrative, not a validated scientific model.
 function scoreSite(site) {
   const active = FILTERS.filter(filter =>
     $(`enable-${filter.id}`).checked
