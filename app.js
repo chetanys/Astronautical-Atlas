@@ -183,7 +183,7 @@ const SITES = [
 ];
 
 let mode = "moon";
-let map;
+let globe;
 let markers = [];
 let selectedSite = null;
 
@@ -274,30 +274,55 @@ function markerClass(score) {
   return "";
 }
 
-function initMap() {
-  map = L.map("map", {
-    zoomControl: false,
-    worldCopyJump: true
-  }).setView([18, 5], 2);
+function globePosition(site, radius = 505) {
+  const latitude = site.lat * Math.PI / 180;
+  // The NASA model's +Z axis points opposite the geographic longitude origin.
+  const longitude = (site.lon + 180) * Math.PI / 180;
+  const horizontalRadius = radius * Math.cos(latitude);
+  const x = horizontalRadius * Math.sin(longitude);
+  const y = radius * Math.sin(latitude);
+  const z = horizontalRadius * Math.cos(longitude);
 
-  L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-      maxZoom: 18,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }
-  ).addTo(map);
+  return {
+    position: `${x.toFixed(2)}m ${y.toFixed(2)}m ${z.toFixed(2)}m`,
+    normal: `${(x / radius).toFixed(4)} ${(y / radius).toFixed(4)} ${(z / radius).toFixed(4)}`
+  };
+}
 
-  map.on("mousemove", event => {
-    $("coordinates").textContent =
-      `LAT ${event.latlng.lat.toFixed(3)}° · ` +
-      `LON ${event.latlng.lng.toFixed(3)}°`;
+function initGlobe() {
+  globe = $("map");
+
+  globe.addEventListener("load", () => {
+    $("globeFallback").classList.add("hidden");
+    if (selectedSite) focusSite(selectedSite);
+  });
+
+  globe.addEventListener("error", event => {
+    console.error("Could not load the NASA Earth model.", event);
+    $("globeFallback").classList.remove("hidden");
   });
 }
 
+function focusSite(site) {
+  if (!globe.loaded) return;
+
+  const { radius } = globe.getCameraOrbit();
+  const theta = site.lon + 180;
+  const phi = 90 - site.lat;
+  globe.cameraOrbit =
+    `${theta}deg ${phi}deg ${Math.min(radius, 950)}m`;
+}
+
+function zoomGlobe(factor) {
+  if (!globe.loaded) return;
+
+  const { theta, phi, radius } = globe.getCameraOrbit();
+  const nextRadius = Math.max(620, Math.min(2500, radius * factor));
+  globe.cameraOrbit = `${theta}rad ${phi}rad ${nextRadius}m`;
+}
+
 function updateMap() {
-  markers.forEach(marker => map.removeLayer(marker));
+  markers.forEach(marker => marker.remove());
   markers = [];
 
   const showTerrain = $("terrainToggle").checked;
@@ -317,21 +342,28 @@ function updateMap() {
       site.type === "climate" ? "climate" : ""
     ].filter(Boolean).join(" ");
 
-    const icon = L.divIcon({
-      className: "",
-      html: `<div class="${classes}"></div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
+    const marker = document.createElement("button");
+    const { position, normal } = globePosition(site);
+    marker.type = "button";
+    marker.className = classes;
+    marker.slot =
+      `hotspot-${site.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+    marker.dataset.position = position;
+    marker.dataset.normal = normal;
+    marker.dataset.visibilityAttribute = "visible";
+    marker.title = `${site.name} · ${site.score}% match`;
+    marker.setAttribute("aria-label", marker.title);
+    marker.addEventListener("click", () => openSite(site));
+    marker.addEventListener("mouseenter", () => {
+      $("coordinates").textContent =
+        `LAT ${site.lat.toFixed(3)}° · LON ${site.lon.toFixed(3)}°`;
+    });
+    marker.addEventListener("focus", () => {
+      $("coordinates").textContent =
+        `LAT ${site.lat.toFixed(3)}° · LON ${site.lon.toFixed(3)}°`;
     });
 
-    const marker = L.marker([site.lat, site.lon], { icon })
-      .addTo(map);
-
-    marker.bindTooltip(
-      `${site.name} · ${site.score}% match`
-    );
-
-    marker.on("click", () => openSite(site));
+    globe.appendChild(marker);
 
     markers.push(marker);
   });
@@ -399,11 +431,7 @@ function openSite(site, zoom = true) {
   `).join("");
 
   if (zoom) {
-    map.flyTo(
-      [site.lat, site.lon],
-      Math.max(map.getZoom(), 5),
-      { duration: 0.8 }
-    );
+    focusSite(site);
   }
 }
 
@@ -452,19 +480,33 @@ $("terrainToggle").addEventListener("change", updateMap);
 $("climateToggle").addEventListener("change", updateMap);
 
 $("showAllBtn").addEventListener("click", () => {
-  map.flyTo([18, 5], 2);
+  globe.cameraTarget = "0m 0m 0m";
+  globe.cameraOrbit = "0deg 75deg 1500m";
   selectedSite = null;
   $("siteCard").classList.add("hidden");
 });
 
-$("zoomInBtn").addEventListener("click", () => map.zoomIn());
-$("zoomOutBtn").addEventListener("click", () => map.zoomOut());
+$("zoomInBtn").addEventListener("click", () => zoomGlobe(0.82));
+$("zoomOutBtn").addEventListener("click", () => zoomGlobe(1.22));
 
 $("closeCard").addEventListener("click", () => {
   $("siteCard").classList.add("hidden");
   selectedSite = null;
 });
 
-initMap();
+function showView(view) {
+  const showLab = view === "lab";
+  $("atlasView").classList.toggle("hidden", showLab);
+  $("lunarLabView").classList.toggle("hidden", !showLab);
+  $("atlasTab").classList.toggle("active", !showLab);
+  $("lunarLabTab").classList.toggle("active", showLab);
+  $("atlasTab").setAttribute("aria-pressed", String(!showLab));
+  $("lunarLabTab").setAttribute("aria-pressed", String(showLab));
+}
+
+$("atlasTab").addEventListener("click", () => showView("atlas"));
+$("lunarLabTab").addEventListener("click", () => showView("lab"));
+
+initGlobe();
 renderFilters();
 updateMap();

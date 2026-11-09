@@ -108,10 +108,237 @@ body[data-mode="mars"] .mode.active {
   background: var(--green);
 }
 
+.view-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #0b0f15;
+}
+
+.view-tab {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font: 9px "DM Mono", monospace;
+  letter-spacing: .3px;
+}
+
+.view-tab.active {
+  background: #293341;
+  color: var(--text);
+}
+
+.view-tab span {
+  margin-left: 4px;
+  color: var(--accent);
+  font-size: 8px;
+}
+
 main {
   display: grid;
   grid-template-columns: 310px minmax(0, 1fr);
   min-height: calc(100vh - 115px);
+}
+
+.lunar-lab {
+  display: block;
+  min-height: calc(100vh - 140px);
+  padding: 36px clamp(18px, 5vw, 72px) 48px;
+  background:
+    radial-gradient(ellipse at 82% 0%, #53412c30, transparent 38%),
+    var(--bg);
+}
+
+.lab-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  max-width: 1240px;
+  margin: 0 auto 28px;
+}
+
+.lab-intro h1 {
+  margin-top: 10px;
+  font-size: clamp(26px, 4vw, 40px);
+}
+
+.lab-intro p,
+.lab-workspace-copy,
+.lab-detail-card p {
+  max-width: 730px;
+  color: #a7b2c0;
+  line-height: 1.7;
+}
+
+.lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 19px;
+}
+
+.lab-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid #3a4655;
+  border-radius: 4px;
+  color: var(--text);
+  text-decoration: none;
+  font: 9px "DM Mono", monospace;
+}
+
+.lab-link:hover,
+.lab-frame-fallback a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lab-link.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #241f17;
+}
+
+.lab-link.primary:hover {
+  background: #f0ca8e;
+}
+
+.lab-stat {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 150px;
+  padding: 20px;
+  border: 1px solid #3b4148;
+  border-radius: 7px;
+  background: #1a2028;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.lab-stat-icon {
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.lab-stat strong {
+  color: var(--text);
+  font-size: 27px;
+}
+
+.lab-workspace {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 19px;
+  border: 1px solid #343e4a;
+  border-radius: 7px;
+  background: #171e28;
+}
+
+.lab-workspace-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.lab-workspace-heading h2,
+.lab-detail-card h2 {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  font: 9px "DM Mono", monospace;
+}
+
+.live-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px #a9d6ad88;
+}
+
+.lab-workspace-copy {
+  margin: 8px 0 15px;
+  font-size: 11px;
+}
+
+.lab-frame-wrap {
+  min-height: 600px;
+  overflow: hidden;
+  border: 1px solid #303947;
+  border-radius: 5px;
+  background: #10141c;
+}
+
+.lab-frame-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 680px;
+  border: 0;
+  background: #10141c;
+}
+
+.lab-frame-fallback {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.lab-frame-fallback a {
+  color: var(--accent);
+}
+
+.lab-details {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+  max-width: 1240px;
+  margin: 16px auto 0;
+}
+
+.lab-detail-card {
+  padding: 18px;
+  border: 1px solid #343e4a;
+  border-radius: 6px;
+  background: #171e28;
+}
+
+.lab-detail-card p {
+  margin-bottom: 0;
+  font-size: 11px;
+}
+
+.modality-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 15px;
+}
+
+.modality-tags span {
+  padding: 6px 8px;
+  border: 1px solid #394451;
+  border-radius: 3px;
+  color: #c2cbd5;
+  font: 8px "DM Mono", monospace;
+}
+
+.lab-caveat {
+  border-color: #544738;
 }
 
 .sidebar {
@@ -307,20 +534,11 @@ h1 {
 #map {
   position: absolute;
   inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
   background: #14212b;
-}
-
-.leaflet-container {
-  background: #14212b;
-  font-family: Manrope, sans-serif;
-}
-
-.leaflet-tile {
-  filter: brightness(.7) saturate(.6) hue-rotate(155deg);
-}
-
-.leaflet-control-attribution {
-  font-size: 9px !important;
+  --poster-color: #14212b;
 }
 
 .map-toolbar {
@@ -380,13 +598,29 @@ h1 {
 }
 
 .marker {
+  display: block;
   width: 17px;
   height: 17px;
+  padding: 0;
   border: 2px solid #ffffffbb;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 0 5px #e9bd7622, 0 0 16px #e9bd7690;
   cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+}
+
+.marker:not([data-visible]) {
+  visibility: hidden;
+}
+
+.marker:hover, .marker:focus-visible {
+  transform: scale(1.3);
+}
+
+.marker:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
 }
 
 .marker.strong {
@@ -458,6 +692,27 @@ h1 {
   color: #bbc5d0;
   font-size: 10px;
   pointer-events: none;
+}
+
+.globe-fallback {
+  position: absolute;
+  z-index: 450;
+  top: 50%;
+  left: 50%;
+  width: min(360px, calc(100% - 36px));
+  padding: 16px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #45515f;
+  border-radius: 5px;
+  background: #151c25ee;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.globe-fallback a {
+  display: block;
+  margin-top: 7px;
+  color: var(--accent);
 }
 
 .site-card {
@@ -557,8 +812,16 @@ footer {
   letter-spacing: .4px;
 }
 
+footer a {
+  color: inherit;
+}
+
 @media (max-width: 850px) {
   main { grid-template-columns: 1fr; }
+  .lunar-lab { padding: 26px 18px 36px; }
+  .lab-frame-wrap { min-height: 520px; }
+  .lab-frame-wrap iframe { height: 600px; }
+  .lab-details { grid-template-columns: 1fr; }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
   .map-panel { min-height: 70vh; }
   .status { display: none; }
@@ -567,6 +830,16 @@ footer {
 
 @media (max-width: 480px) {
   .topbar { padding: 12px; }
+  .view-tabs { width: 100%; }
+  .view-tab { flex: 1; padding: 10px 7px; }
+  .lab-intro { align-items: flex-start; }
+  .lab-stat { min-width: 88px; padding: 12px 8px; }
+  .lab-stat span:last-child { text-align: center; }
+  .lab-workspace { padding: 13px; }
+  .lab-workspace-heading { align-items: flex-start; }
+  .live-status { padding-top: 3px; font-size: 8px; }
+  .lab-frame-wrap { min-height: 450px; }
+  .lab-frame-wrap iframe { height: 520px; }
   .mode { padding: 10px 8px; font-size: 9px; }
   .map-toolbar { top: 9px; left: 9px; right: 9px; }
   .map-title { padding: 8px; }

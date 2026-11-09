@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Otherworld Atlas | Moon & Mars Explorer</title>
 
-  <link rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -25,10 +22,19 @@
       <button id="marsBtn" class="mode">♂ MARS MODE</button>
     </div>
 
-    <div class="status"><span></span> INTERACTIVE FIELD MAP</div>
+    <nav class="view-tabs" aria-label="Explorer views">
+      <button id="atlasTab" class="view-tab active" type="button" aria-pressed="true">
+        FIELD MAP
+      </button>
+      <button id="lunarLabTab" class="view-tab" type="button" aria-pressed="false">
+        LUNAR AI LAB <span>NEW</span>
+      </button>
+    </nav>
+
+    <div class="status"><span></span> INTERACTIVE 3D EARTH</div>
   </header>
 
-  <main>
+  <main id="atlasView">
     <aside class="sidebar">
       <div class="heading">
         <div>
@@ -95,10 +101,34 @@
         </div>
       </div>
 
-      <div id="map"></div>
+      <model-viewer
+        id="map"
+        src="./assets/earth.glb"
+        poster="https://solarsystem.nasa.gov/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBaThSIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--7d74b9a474270365fe6127b548c73ae030610e20/poster_earth.jpg"
+        alt="NASA 3D model of Earth with clickable planetary analog sites"
+        background-color="#14212b"
+        camera-controls
+        camera-orbit="0deg 75deg 1500m"
+        camera-target="0m 0m 0m"
+        min-camera-orbit="auto auto 620m"
+        max-camera-orbit="auto auto 2500m"
+        interaction-prompt="none"
+        exposure="1"
+        shadow-intensity="1"
+        preload
+        reveal="auto"
+      ></model-viewer>
+
+      <div id="globeFallback" class="globe-fallback hidden" role="status">
+        The NASA Earth model could not be loaded.
+        <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
+          target="_blank" rel="noopener noreferrer">
+          Open the NASA 3D Earth model ↗
+        </a>
+      </div>
 
       <div class="coordinates" id="coordinates">
-        LAT 00.000° · LON 00.000°
+        DRAG TO ROTATE · HOVER A SITE
       </div>
 
       <div class="legend">
@@ -128,13 +158,107 @@
     </section>
   </main>
 
+  <main id="lunarLabView" class="lunar-lab hidden">
+    <section class="lab-intro">
+      <div>
+        <small class="eyebrow">NASA · IBM · LUNAR REMOTE SENSING</small>
+        <h1>Meet the Lunar Foundation Model</h1>
+        <p>
+          Explore how a multimodal model connects lunar surface imagery,
+          terrain and illumination data. Choose a sample tile in the live
+          demo, provide input modalities and generate a held-out modality.
+        </p>
+        <div class="lab-actions">
+          <a
+            class="lab-link primary"
+            href="https://nasa-ibm-ai4science-nasa-ibm-lunar-foundation-mo-95c3215.hf.space"
+            target="_blank"
+            rel="noopener noreferrer"
+          >OPEN FULL DEMO ↗</a>
+          <a
+            class="lab-link"
+            href="https://huggingface.co/nasa-ibm-ai4science/NASA-IBM-Lunar-Foundation-Model"
+            target="_blank"
+            rel="noopener noreferrer"
+          >MODEL CARD ↗</a>
+        </div>
+      </div>
+      <div class="lab-stat">
+        <span class="lab-stat-icon">☾</span>
+        <strong>11</strong>
+        <span>lunar data modalities</span>
+      </div>
+    </section>
+
+    <section class="lab-workspace" aria-label="Interactive Lunar Foundation Model demo">
+      <div class="lab-workspace-heading">
+        <div>
+          <small class="eyebrow">LIVE HUGGING FACE SPACE</small>
+          <h2>Cross-modal generation</h2>
+        </div>
+        <span class="live-status"><i></i> HOSTED MODEL</span>
+      </div>
+      <p class="lab-workspace-copy">
+        Select an official sample, choose the modalities to condition on, then
+        ask the model to generate a held-out modality. The hosted demo also
+        compares its output with the original and tokenizer reconstruction.
+      </p>
+      <div class="lab-frame-wrap">
+        <iframe
+          title="NASA-IBM Lunar Foundation Model interactive demo"
+          src="https://nasa-ibm-ai4science-nasa-ibm-lunar-foundation-mo-95c3215.hf.space?__theme=dark"
+          loading="lazy"
+          allow="clipboard-read; clipboard-write"
+          allowfullscreen
+        ></iframe>
+      </div>
+      <p class="lab-frame-fallback">
+        If the embedded demo does not load,
+        <a
+          href="https://nasa-ibm-ai4science-nasa-ibm-lunar-foundation-mo-95c3215.hf.space"
+          target="_blank"
+          rel="noopener noreferrer"
+        >open it directly on Hugging Face ↗</a>.
+      </p>
+    </section>
+
+    <section class="lab-details">
+      <article class="lab-detail-card">
+        <small class="eyebrow">MULTIMODAL INPUTS</small>
+        <h2>One lunar tile, many views</h2>
+        <p>
+          The model works with co-registered LRO imagery and terrain products,
+          including wide-angle and narrow-angle observations.
+        </p>
+        <div class="modality-tags">
+          <span>WAC · 100 m/px</span>
+          <span>NAC · 1 m/px</span>
+          <span>VISIBLE / UV</span>
+          <span>DTM / SLOPE / ASPECT</span>
+          <span>ILLUMINATION CONTEXT</span>
+        </div>
+      </article>
+      <article class="lab-detail-card lab-caveat">
+        <small class="eyebrow">RESEARCH PREVIEW</small>
+        <h2>Read outputs with care</h2>
+        <p>
+          This is a qualitative research probe, not a calibrated scientific
+          product. Generated fields have no geodetic reference frame and
+          must not be used for mission planning or quantitative decisions.
+        </p>
+      </article>
+    </section>
+  </main>
+
   <footer>
     <span>OTHERWORLD ATLAS</span>
     <span>Earth environments · Off-world exploration</span>
-    <span>© OpenStreetMap contributors</span>
+    <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
+      target="_blank" rel="noopener noreferrer">NASA 3D Earth model</a>
   </footer>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer@1.10.1/dist/model-viewer.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
