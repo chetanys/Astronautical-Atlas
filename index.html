@@ -22,15 +22,6 @@
       <button id="marsBtn" class="mode">♂ MARS MODE</button>
     </div>
 
-    <nav class="view-tabs" aria-label="Explorer views">
-      <button id="atlasTab" class="view-tab active" type="button" aria-pressed="true">
-        FIELD MAP
-      </button>
-      <button id="lunarLabTab" class="view-tab" type="button" aria-pressed="false">
-        LUNAR AI LAB <span>NEW</span>
-      </button>
-    </nav>
-
     <div class="status"><span></span> INTERACTIVE 3D EARTH</div>
   </header>
 
@@ -47,6 +38,74 @@
       <p id="modeDescription" class="muted">
         Find Earth environments with conditions similar to the Moon.
       </p>
+
+      <section class="sun-calculator" aria-labelledby="sunHeading">
+        <small class="eyebrow">NO-API SOLAR CALCULATOR</small>
+        <h2 id="sunHeading">Winter-solstice sunlight</h2>
+        <p class="hint">
+          Move the latitude slider to compare the local winter Sun with the
+          lunar south-pole limit.
+        </p>
+        <label class="sun-slider-label" for="sunLatitude">
+          TEST LATITUDE <output id="sunLatitudeValue" for="sunLatitude">77.5° S</output>
+        </label>
+        <input
+          class="range"
+          id="sunLatitude"
+          type="range"
+          min="-90"
+          max="90"
+          step="0.5"
+          value="-77.5"
+          aria-label="Test latitude for winter-solstice sunlight"
+        >
+        <div class="range-labels"><span>90° S</span><span>90° N</span></div>
+        <div class="sun-result">
+          <span id="sunSolstice">JUNE SOLSTICE · SOUTHERN WINTER</span>
+          <strong id="sunElevation">−10.9°</strong>
+          <span>MAX SUN ELEVATION AT LOCAL NOON</span>
+        </div>
+        <div class="shadow-visual">
+          <div class="shadow-heading">
+            <span>1 M ROVER · CAST SHADOW</span>
+            <strong id="shadowLength">NIGHT</strong>
+          </div>
+          <svg
+            id="shadowDiagram"
+            class="shadow-diagram night"
+            viewBox="0 0 420 112"
+            role="img"
+            aria-labelledby="shadowTitle shadowDescription"
+          >
+            <title id="shadowTitle">One-meter rover shadow illustration</title>
+            <desc id="shadowDescription">At this latitude it is night during the winter solstice.</desc>
+            <circle class="diagram-sun" cx="365" cy="24" r="10"></circle>
+            <path class="sun-rays" d="M365 5v-4m0 46v-4m-19-19h-4m46 0h-4m-32-13-3-3m32 32-3-3m0-26 3-3m-32 32 3-3"></path>
+            <line class="diagram-ground" x1="14" y1="88" x2="406" y2="88"></line>
+            <line id="shadowLine" class="diagram-shadow" x1="350" y1="88" x2="20" y2="88"></line>
+            <g class="diagram-rover">
+              <rect x="335" y="58" width="30" height="22" rx="3"></rect>
+              <path d="m345 58 5-10 7 10m-7 22v8"></path>
+              <circle cx="341" cy="84" r="4"></circle>
+              <circle cx="360" cy="84" r="4"></circle>
+            </g>
+            <text id="shadowScale" class="diagram-scale" x="406" y="105" text-anchor="end">Diagram scale: 60 m</text>
+            <text id="shadowNight" class="diagram-night" x="160" y="43" text-anchor="middle">NO DIRECT SUNLIGHT</text>
+          </svg>
+          <p id="shadowCaption" class="shadow-caption">
+            The Sun is below the horizon at winter-solstice noon.
+          </p>
+        </div>
+        <p id="sunRisk" class="sun-risk" role="status" aria-live="polite">
+          UNFAKED LIGHT ZONE · WINTER SUN STAYS BELOW 10°
+        </p>
+        <p class="lunar-reference">
+          Lunar south pole: Sun never exceeds <b>7°</b> above the horizon.
+        </p>
+        <p class="sun-caveat">
+          Geometry estimate only; not a rover failure probability.
+        </p>
+      </section>
 
       <div class="section-heading">
         ENVIRONMENTAL FILTERS
@@ -92,6 +151,12 @@
         <div class="map-title">
           <small class="eyebrow">PLANETARY ANALOG NETWORK</small>
           <strong>EARTH / SURFACE COMPARISON</strong>
+          <label class="site-picker">
+            <span>OPEN A SITE</span>
+            <select id="sitePicker" aria-label="Open an analog site profile">
+              <option value="">Choose a site...</option>
+            </select>
+          </label>
         </div>
 
         <div class="map-buttons">
@@ -135,6 +200,7 @@
         <span><i class="legend-dot green"></i> Strong match</span>
         <span><i class="legend-dot yellow"></i> Partial match</span>
         <span><i class="legend-dot grey"></i> Low match</span>
+        <span><i class="legend-dot low-light-dot"></i> Unfaked Light zone</span>
       </div>
 
       <article id="siteCard" class="site-card hidden">
@@ -151,6 +217,25 @@
         <p id="siteDescription" class="description"></p>
         <div id="siteMetrics" class="metrics"></div>
 
+        <section class="climate-section" aria-labelledby="climateHeading">
+          <div class="climate-heading">
+            <small id="climateHeading" class="eyebrow">NASA POWER · LONG-TERM CLIMATOLOGY</small>
+            <button id="refreshClimate" class="link-btn hidden" type="button">
+              RETRY
+            </button>
+          </div>
+          <p id="climateStatus" role="status" aria-live="polite">
+            Select a site to load its climate data.
+          </p>
+          <div id="climateMetrics" class="metrics hidden"></div>
+          <a
+            class="climate-source"
+            href="https://power.larc.nasa.gov/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >NASA POWER DATA ↗</a>
+        </section>
+
         <p class="card-footer">ILLUSTRATIVE SITE PROFILE</p>
       </article>
 
@@ -158,7 +243,7 @@
     </section>
   </main>
 
-  <main id="lunarLabView" class="lunar-lab hidden">
+  <main id="lunarLabView" class="lunar-lab hidden" hidden>
     <section class="lab-intro">
       <div>
         <small class="eyebrow">NASA · IBM · LUNAR REMOTE SENSING</small>
