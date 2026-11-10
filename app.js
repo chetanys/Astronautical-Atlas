@@ -47,6 +47,9 @@ const FILTERS = [
   }
 ];
 
+const LOW_LIGHT_THRESHOLD = 10;
+const SOLSTICE_DECLINATION = 23.44;
+
 const SITES = [
   {
     name: "Atacama Desert",
@@ -186,6 +189,9 @@ let mode = "moon";
 let globe;
 let markers = [];
 let selectedSite = null;
+const climateCache = new Map();
+let activeClimateKey = null;
+let climateRequestId = 0;
 
 const $ = id => document.getElementById(id);
 
@@ -247,6 +253,16 @@ function renderFilters() {
   });
 }
 
+function renderSitePicker() {
+  const picker = $("sitePicker");
+  SITES.forEach(site => {
+    const option = document.createElement("option");
+    option.value = site.name;
+    option.textContent = site.name;
+    picker.appendChild(option);
+  });
+}
+
 function scoreSite(site) {
   const active = FILTERS.filter(filter =>
     $(`enable-${filter.id}`).checked
@@ -266,6 +282,66 @@ function scoreSite(site) {
     scores.reduce((total, value) => total + value, 0) /
     scores.length
   );
+}
+
+function winterSolstice(latitude) {
+  const isNorthernWinter = latitude >= 0;
+  const declination = isNorthernWinter
+    ? -SOLSTICE_DECLINATION
+    : SOLSTICE_DECLINATION;
+
+  return {
+    date: isNorthernWinter ? "DEC SOLSTICE · 21 DEC REF" : "JUN SOLSTICE · 21 JUN REF",
+    season: isNorthernWinter ? "NORTHERN WINTER" : "SOUTHERN WINTER",
+    elevation: 90 - Math.abs(latitude - declination)
+  };
+}
+
+function formatLatitude(latitude) {
+  if (latitude === 0) return "0°";
+  return `${Math.abs(latitude).toFixed(1)}° ${latitude < 0 ? "S" : "N"}`;
+}
+
+function updateSunCalculator(latitude) {
+  const { date, season, elevation } = winterSolstice(latitude);
+  const lowLight = elevation <= LOW_LIGHT_THRESHOLD;
+  const night = elevation <= 0;
+  const shadowLine = $("shadowLine");
+  const shadowDiagram = $("shadowDiagram");
+  $("sunLatitudeValue").textContent = formatLatitude(latitude);
+  $("sunSolstice").textContent = `${date} · ${season}`;
+  $("sunElevation").textContent =
+    `${elevation < 0 ? "−" : ""}${Math.abs(elevation).toFixed(1)}°`;
+  shadowDiagram.classList.toggle("night", night);
+
+  if (night) {
+    $("shadowLength").textContent = "NIGHT";
+    $("shadowCaption").textContent =
+      "The Sun is below the horizon at winter-solstice noon.";
+    $("shadowDescription").textContent =
+      "The Sun is below the horizon, so there is no direct sunlight or cast shadow.";
+    shadowLine.setAttribute("x2", "350");
+  } else {
+    const shadowMeters = 1 / Math.tan(elevation * Math.PI / 180);
+    const displayedLength = Math.min(shadowMeters, 60);
+    shadowLine.setAttribute(
+      "x2",
+      String((350 - displayedLength * 5.5).toFixed(1))
+    );
+    $("shadowLength").textContent = shadowMeters > 60
+      ? ">60 m"
+      : `${shadowMeters.toFixed(1)} m`;
+    $("shadowCaption").textContent = shadowMeters > 60
+      ? "Calculated shadow exceeds the 60 m illustration scale."
+      : "Calculated for a 1 m rover at local winter-solstice noon.";
+    $("shadowDescription").textContent =
+      `A one-meter rover casts a ${shadowMeters.toFixed(1)} meter shadow at a Sun elevation of ${elevation.toFixed(1)} degrees.`;
+  }
+
+  $("sunRisk").textContent = lowLight
+    ? `UNFAKED LIGHT ZONE · WINTER SUN ${elevation < 0 ? "STAYS BELOW THE HORIZON" : "STAYS AT OR BELOW 10°"}`
+    : "WINTER SUN EXCEEDS THE 10° LOW-LIGHT THRESHOLD";
+  $("sunRisk").classList.toggle("low-light", lowLight);
 }
 
 function markerClass(score) {
@@ -329,7 +405,11 @@ function updateMap() {
   const showClimate = $("climateToggle").checked;
 
   const visibleSites = SITES
-    .map(site => ({ ...site, score: scoreSite(site) }))
+    .map(site => ({
+      ...site,
+      score: scoreSite(site),
+      winterSunElevation: winterSolstice(site.lat).elevation
+    }))
     .filter(site =>
       site.type === "terrain" ? showTerrain : showClimate
     );
@@ -339,7 +419,8 @@ function updateMap() {
       "marker",
       markerClass(site.score),
       mode === "mars" ? "mars" : "",
-      site.type === "climate" ? "climate" : ""
+      site.type === "climate" ? "climate" : "",
+      site.winterSunElevation <= LOW_LIGHT_THRESHOLD ? "unfaked-light" : ""
     ].filter(Boolean).join(" ");
 
     const marker = document.createElement("button");
@@ -351,7 +432,11 @@ function updateMap() {
     marker.dataset.position = position;
     marker.dataset.normal = normal;
     marker.dataset.visibilityAttribute = "visible";
-    marker.title = `${site.name} · ${site.score}% match`;
+    const lowLightDescription =
+      site.winterSunElevation <= LOW_LIGHT_THRESHOLD
+        ? ` · UNFAKED LIGHT ZONE · winter-solstice Sun ${site.winterSunElevation.toFixed(1)}°`
+        : "";
+    marker.title = `${site.name} · ${site.score}% match${lowLightDescription}`;
     marker.setAttribute("aria-label", marker.title);
     marker.addEventListener("click", () => openSite(site));
     marker.addEventListener("mouseenter", () => {
@@ -389,16 +474,22 @@ function updateMap() {
     );
 
     if (updated) {
-      openSite(updated, false);
+      openSite(updated, false, false);
     } else {
       $("siteCard").classList.add("hidden");
       selectedSite = null;
+      $("sitePicker").value = "";
     }
   }
 }
 
-function openSite(site, zoom = true) {
+function openSite(site, zoom = true, syncLatitude = true) {
   selectedSite = site;
+  $("sitePicker").value = site.name;
+  if (syncLatitude) {
+    $("sunLatitude").value = site.lat;
+    updateSunCalculator(site.lat);
+  }
 
   $("siteCard").classList.remove("hidden");
   $("siteType").textContent = site.type === "terrain"
@@ -430,9 +521,118 @@ function openSite(site, zoom = true) {
     </div>
   `).join("");
 
+  loadClimateData(site);
+
   if (zoom) {
     focusSite(site);
   }
+}
+
+function climateKey(site) {
+  return `${site.lat},${site.lon}`;
+}
+
+function renderClimateData(data) {
+  $("climateStatus").textContent =
+    "NASA POWER grid-cell averages; local conditions may differ.";
+  $("refreshClimate").classList.add("hidden");
+
+  const metrics = [
+    ["2 M AIR TEMP", `${data.temperature.toFixed(1)} °C`],
+    ["WIND SPEED", `${data.windSpeed.toFixed(1)} m/s`],
+    ["SOLAR RADIATION", `${data.solarRadiation.toFixed(2)} kWh/m²/day`]
+  ];
+
+  $("climateMetrics").innerHTML = metrics.map(([label, value]) => `
+    <div class="metric">
+      <span>${label}</span>
+      <b>${value}</b>
+    </div>
+  `).join("");
+  $("climateMetrics").classList.remove("hidden");
+}
+
+async function requestClimateData(site) {
+  const url = new URL(
+    "https://power.larc.nasa.gov/api/temporal/climatology/point"
+  );
+  url.search = new URLSearchParams({
+    parameters: "T2M,WS2M,ALLSKY_SFC_SW_DWN",
+    community: "AG",
+    longitude: String(site.lon),
+    latitude: String(site.lat),
+    format: "JSON"
+  }).toString();
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`NASA POWER request failed with status ${response.status}.`);
+  }
+
+  const result = await response.json();
+  const parameters = result?.properties?.parameter;
+  const values = [
+    parameters?.T2M?.ANN,
+    parameters?.WS2M?.ANN,
+    parameters?.ALLSKY_SFC_SW_DWN?.ANN
+  ];
+
+  if (values.some(value =>
+    typeof value !== "number" || !Number.isFinite(value) || value === -999
+  )) {
+    throw new Error("NASA POWER returned incomplete climatology data.");
+  }
+
+  return {
+    temperature: values[0],
+    windSpeed: values[1],
+    solarRadiation: values[2]
+  };
+}
+
+function loadClimateData(site, forceRefresh = false) {
+  const key = climateKey(site);
+  if (!forceRefresh && climateCache.has(key)) {
+    activeClimateKey = key;
+    climateRequestId++;
+    renderClimateData(climateCache.get(key));
+    return;
+  }
+  if (key === activeClimateKey && !forceRefresh) return;
+
+  activeClimateKey = key;
+  const requestId = ++climateRequestId;
+  const climateMetrics = $("climateMetrics");
+  const climateStatus = $("climateStatus");
+  const refreshButton = $("refreshClimate");
+  climateMetrics.classList.add("hidden");
+  refreshButton.classList.add("hidden");
+
+  climateStatus.textContent = "Loading NASA POWER climate data...";
+
+  requestClimateData(site)
+    .then(data => {
+      climateCache.set(key, data);
+      if (requestId !== climateRequestId ||
+          !selectedSite ||
+          climateKey(selectedSite) !== key) {
+        return;
+      }
+
+      renderClimateData(data);
+    })
+    .catch(error => {
+      console.error("Could not load NASA POWER climate data.", error);
+      if (requestId !== climateRequestId ||
+          !selectedSite ||
+          climateKey(selectedSite) !== key) {
+        return;
+      }
+
+      climateStatus.textContent =
+        "Climate data unavailable. Check your connection and retry.";
+      refreshButton.classList.remove("hidden");
+    });
 }
 
 function setMode(nextMode) {
@@ -483,30 +683,39 @@ $("showAllBtn").addEventListener("click", () => {
   globe.cameraTarget = "0m 0m 0m";
   globe.cameraOrbit = "0deg 75deg 1500m";
   selectedSite = null;
+  $("sitePicker").value = "";
   $("siteCard").classList.add("hidden");
 });
 
 $("zoomInBtn").addEventListener("click", () => zoomGlobe(0.82));
 $("zoomOutBtn").addEventListener("click", () => zoomGlobe(1.22));
 
+$("sitePicker").addEventListener("change", () => {
+  const site = SITES.find(candidate => candidate.name === $("sitePicker").value);
+  if (site) {
+    openSite({ ...site, score: scoreSite(site) });
+  } else {
+    selectedSite = null;
+    $("siteCard").classList.add("hidden");
+  }
+});
+
+$("sunLatitude").addEventListener("input", () => {
+  updateSunCalculator(Number($("sunLatitude").value));
+});
+
 $("closeCard").addEventListener("click", () => {
   $("siteCard").classList.add("hidden");
   selectedSite = null;
+  $("sitePicker").value = "";
 });
 
-function showView(view) {
-  const showLab = view === "lab";
-  $("atlasView").classList.toggle("hidden", showLab);
-  $("lunarLabView").classList.toggle("hidden", !showLab);
-  $("atlasTab").classList.toggle("active", !showLab);
-  $("lunarLabTab").classList.toggle("active", showLab);
-  $("atlasTab").setAttribute("aria-pressed", String(!showLab));
-  $("lunarLabTab").setAttribute("aria-pressed", String(showLab));
-}
-
-$("atlasTab").addEventListener("click", () => showView("atlas"));
-$("lunarLabTab").addEventListener("click", () => showView("lab"));
+$("refreshClimate").addEventListener("click", () => {
+  if (selectedSite) loadClimateData(selectedSite, true);
+});
 
 initGlobe();
+renderSitePicker();
+updateSunCalculator(Number($("sunLatitude").value));
 renderFilters();
 updateMap();
