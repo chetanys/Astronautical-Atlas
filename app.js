@@ -48,7 +48,13 @@ const FILTERS = [
 ];
 
 const LOW_LIGHT_THRESHOLD = 10;
-const SOLSTICE_DECLINATION = 23.44;
+const EARTH_OBLIQUITY = 23.44;
+const MARS_OBLIQUITY = 25.19;
+const MONTHS = [
+  ["JAN", "Jan"], ["FEB", "Feb"], ["MAR", "Mar"], ["APR", "Apr"],
+  ["MAY", "May"], ["JUN", "Jun"], ["JUL", "Jul"], ["AUG", "Aug"],
+  ["SEP", "Sep"], ["OCT", "Oct"], ["NOV", "Nov"], ["DEC", "Dec"]
+];
 
 const SITES = [
   {
@@ -286,12 +292,17 @@ function scoreSite(site) {
 
 function winterSolstice(latitude) {
   const isNorthernWinter = latitude >= 0;
+  const obliquity = mode === "mars" ? MARS_OBLIQUITY : EARTH_OBLIQUITY;
   const declination = isNorthernWinter
-    ? -SOLSTICE_DECLINATION
-    : SOLSTICE_DECLINATION;
+    ? -obliquity
+    : obliquity;
 
   return {
-    date: isNorthernWinter ? "DEC SOLSTICE · 21 DEC REF" : "JUN SOLSTICE · 21 JUN REF",
+    date: mode === "mars"
+      ? "MARS SOLSTICE"
+      : isNorthernWinter
+        ? "DEC SOLSTICE · 21 DEC REF"
+        : "JUN SOLSTICE · 21 JUN REF",
     season: isNorthernWinter ? "NORTHERN WINTER" : "SOUTHERN WINTER",
     elevation: 90 - Math.abs(latitude - declination)
   };
@@ -310,6 +321,12 @@ function updateSunCalculator(latitude) {
   const shadowDiagram = $("shadowDiagram");
   $("sunLatitudeValue").textContent = formatLatitude(latitude);
   $("sunSolstice").textContent = `${date} · ${season}`;
+  $("sunHint").textContent = mode === "mars"
+    ? "Estimate the local winter Sun using Mars's 25.19° axial tilt."
+    : "Move the latitude slider to compare the local winter Sun with the lunar south-pole limit.";
+  $("solarReference").textContent = mode === "mars"
+    ? `Mars axial tilt: ${MARS_OBLIQUITY}°. Solstice geometry only; seasons do not share Earth's calendar dates.`
+    : "Lunar south pole: Sun never exceeds 7° above the horizon.";
   $("sunElevation").textContent =
     `${elevation < 0 ? "−" : ""}${Math.abs(elevation).toFixed(1)}°`;
   shadowDiagram.classList.toggle("night", night);
@@ -339,7 +356,7 @@ function updateSunCalculator(latitude) {
   }
 
   $("sunRisk").textContent = lowLight
-    ? `UNFAKED LIGHT ZONE · WINTER SUN ${elevation < 0 ? "STAYS BELOW THE HORIZON" : "STAYS AT OR BELOW 10°"}`
+    ? `LOW-LIGHT ZONE · WINTER SUN ${elevation < 0 ? "STAYS BELOW THE HORIZON" : "STAYS AT OR BELOW 10°"}`
     : "WINTER SUN EXCEEDS THE 10° LOW-LIGHT THRESHOLD";
   $("sunRisk").classList.toggle("low-light", lowLight);
 }
@@ -485,6 +502,7 @@ function updateMap() {
 
 function openSite(site, zoom = true, syncLatitude = true) {
   selectedSite = site;
+  updateSiteUrl(site.name);
   $("sitePicker").value = site.name;
   if (syncLatitude) {
     $("sunLatitude").value = site.lat;
@@ -532,6 +550,126 @@ function climateKey(site) {
   return `${site.lat},${site.lon}`;
 }
 
+function updateSiteUrl(siteName = null) {
+  const url = new URL(window.location.href);
+  if (siteName) {
+    url.searchParams.set("site", siteName);
+  } else {
+    url.searchParams.delete("site");
+  }
+  window.history.replaceState(null, "", url);
+}
+
+function exportSiteJson() {
+  if (!selectedSite) return;
+
+  const site = selectedSite;
+  const data = {
+    name: site.name,
+    country: site.country,
+    latitude: site.lat,
+    longitude: site.lon,
+    score: site.score,
+    climate: site.climate,
+    description: site.description,
+    nasaPower: climateCache.get(climateKey(site)) ?? null
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json"
+  });
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = `${site.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
+function renderTemperatureChart(monthlyTemperatures) {
+  const chart = $("climateChart");
+  const width = 360;
+  const height = 150;
+  const left = 32;
+  const right = 8;
+  const top = 12;
+  const bottom = 28;
+  const values = monthlyTemperatures;
+  const low = Math.floor(Math.min(...values) / 5) * 5;
+  const high = Math.ceil(Math.max(...values) / 5) * 5 || low + 5;
+  const range = high - low || 5;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "NASA POWER monthly mean air temperature");
+
+  const addElement = (name, attributes, text = "") => {
+    const element = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      name
+    );
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, String(value));
+    });
+    element.textContent = text;
+    svg.appendChild(element);
+    return element;
+  };
+
+  addElement("title", {}, "Monthly mean air temperature");
+  addElement(
+    "desc",
+    {},
+    "NASA POWER monthly climatology temperatures in degrees Celsius."
+  );
+
+  for (let tick = 0; tick <= 2; tick++) {
+    const value = low + range * tick / 2;
+    const y = top + plotHeight * (1 - tick / 2);
+    addElement("line", {
+      x1: left, x2: width - right, y1: y, y2: y, class: "chart-grid"
+    });
+    addElement("text", {
+      x: left - 5, y: y + 3, "text-anchor": "end", class: "chart-axis"
+    }, `${value.toFixed(0)}°`);
+  }
+
+  const points = values.map((value, index) => {
+    const x = left + plotWidth * index / (values.length - 1);
+    const y = top + plotHeight * (1 - (value - low) / range);
+    return { x, y, value };
+  });
+
+  addElement("polyline", {
+    points: points.map(point => `${point.x},${point.y}`).join(" "),
+    class: "chart-line"
+  });
+
+  points.forEach((point, index) => {
+    const x = left + plotWidth * index / (values.length - 1);
+    const circle = addElement("circle", {
+      cx: point.x, cy: point.y, r: 2.5, class: "chart-point"
+    });
+    const title = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "title"
+    );
+    title.textContent = `${MONTHS[index][1]}: ${point.value.toFixed(1)} °C`;
+    circle.appendChild(title);
+    addElement("text", {
+      x, y: height - 8, "text-anchor": "middle", class: "chart-month"
+    }, MONTHS[index][1]);
+  });
+
+  const label = document.createElement("p");
+  label.textContent = "MONTHLY MEAN AIR TEMPERATURE · °C";
+  chart.replaceChildren(label, svg);
+  chart.classList.remove("hidden");
+}
+
 function renderClimateData(data) {
   $("climateStatus").textContent =
     "NASA POWER grid-cell averages; local conditions may differ.";
@@ -550,6 +688,7 @@ function renderClimateData(data) {
     </div>
   `).join("");
   $("climateMetrics").classList.remove("hidden");
+  renderTemperatureChart(data.monthlyTemperature);
 }
 
 async function requestClimateData(site) {
@@ -576,17 +715,20 @@ async function requestClimateData(site) {
     parameters?.WS2M?.ANN,
     parameters?.ALLSKY_SFC_SW_DWN?.ANN
   ];
+  const monthlyTemperature = MONTHS.map(([key]) => parameters?.T2M?.[key]);
 
-  if (values.some(value =>
-    typeof value !== "number" || !Number.isFinite(value) || value === -999
-  )) {
+  const isValidValue = value =>
+    typeof value === "number" && Number.isFinite(value) && value !== -999;
+  if (values.some(value => !isValidValue(value)) ||
+      monthlyTemperature.some(value => !isValidValue(value))) {
     throw new Error("NASA POWER returned incomplete climatology data.");
   }
 
   return {
     temperature: values[0],
     windSpeed: values[1],
-    solarRadiation: values[2]
+    solarRadiation: values[2],
+    monthlyTemperature
   };
 }
 
@@ -603,9 +745,11 @@ function loadClimateData(site, forceRefresh = false) {
   activeClimateKey = key;
   const requestId = ++climateRequestId;
   const climateMetrics = $("climateMetrics");
+  const climateChart = $("climateChart");
   const climateStatus = $("climateStatus");
   const refreshButton = $("refreshClimate");
   climateMetrics.classList.add("hidden");
+  climateChart.classList.add("hidden");
   refreshButton.classList.add("hidden");
 
   climateStatus.textContent = "Loading NASA POWER climate data...";
@@ -658,7 +802,10 @@ function setMode(nextMode) {
 
   renderFilters();
   selectedSite = null;
+  $("sitePicker").value = "";
   $("siteCard").classList.add("hidden");
+  updateSiteUrl();
+  updateSunCalculator(Number($("sunLatitude").value));
   updateMap();
 }
 
@@ -685,6 +832,7 @@ $("showAllBtn").addEventListener("click", () => {
   selectedSite = null;
   $("sitePicker").value = "";
   $("siteCard").classList.add("hidden");
+  updateSiteUrl();
 });
 
 $("zoomInBtn").addEventListener("click", () => zoomGlobe(0.82));
@@ -697,6 +845,7 @@ $("sitePicker").addEventListener("change", () => {
   } else {
     selectedSite = null;
     $("siteCard").classList.add("hidden");
+    updateSiteUrl();
   }
 });
 
@@ -708,7 +857,10 @@ $("closeCard").addEventListener("click", () => {
   $("siteCard").classList.add("hidden");
   selectedSite = null;
   $("sitePicker").value = "";
+  updateSiteUrl();
 });
+
+$("exportSite").addEventListener("click", exportSiteJson);
 
 $("refreshClimate").addEventListener("click", () => {
   if (selectedSite) loadClimateData(selectedSite, true);
@@ -719,3 +871,9 @@ renderSitePicker();
 updateSunCalculator(Number($("sunLatitude").value));
 renderFilters();
 updateMap();
+
+const requestedSite = new URLSearchParams(window.location.search).get("site");
+const deepLinkedSite = SITES.find(site => site.name === requestedSite);
+if (deepLinkedSite) {
+  openSite({ ...deepLinkedSite, score: scoreSite(deepLinkedSite) });
+}

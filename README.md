@@ -2,10 +2,13 @@
 
 Otherworld Atlas compares Earth locations in Moon and Mars modes. Site profiles
 also load NASA POWER long-term climatology for mean temperature, wind speed and
-surface solar radiation at each location. Choose a location from the map's
+surface solar radiation at each location, including monthly mean temperature.
+Choose a location from the map's
 “Open a site” menu or click its globe marker to view the profile and climate
-readings. The sidebar's no-API sunlight calculator estimates maximum winter
-solstice Sun elevation at local noon from latitude. Low-light winter analog
+readings. Site profiles can be opened with a `?site=` URL parameter and
+exported as JSON. The sidebar's no-API sunlight calculator estimates maximum
+winter-solstice Sun elevation at local noon from latitude, using Mars's axial
+tilt in Mars mode. Low-light winter analog
 sites (10° or less) are highlighted on the globe; this is illumination context,
 not a rover failure probability. The calculator also visualizes the shadow of a
 1 m rover using `shadow length = 1 m / tan(sun elevation)`. At or below the

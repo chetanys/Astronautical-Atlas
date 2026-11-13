@@ -42,7 +42,7 @@
       <section class="sun-calculator" aria-labelledby="sunHeading">
         <small class="eyebrow">NO-API SOLAR CALCULATOR</small>
         <h2 id="sunHeading">Winter-solstice sunlight</h2>
-        <p class="hint">
+        <p id="sunHint" class="hint">
           Move the latitude slider to compare the local winter Sun with the
           lunar south-pole limit.
         </p>
@@ -99,7 +99,7 @@
         <p id="sunRisk" class="sun-risk" role="status" aria-live="polite">
           UNFAKED LIGHT ZONE · WINTER SUN STAYS BELOW 10°
         </p>
-        <p class="lunar-reference">
+        <p id="solarReference" class="lunar-reference">
           Lunar south pole: Sun never exceeds <b>7°</b> above the horizon.
         </p>
         <p class="sun-caveat">
@@ -216,6 +216,9 @@
 
         <p id="siteDescription" class="description"></p>
         <div id="siteMetrics" class="metrics"></div>
+        <button id="exportSite" class="export-btn" type="button">
+          EXPORT SITE JSON
+        </button>
 
         <section class="climate-section" aria-labelledby="climateHeading">
           <div class="climate-heading">
@@ -228,6 +231,7 @@
             Select a site to load its climate data.
           </p>
           <div id="climateMetrics" class="metrics hidden"></div>
+          <div id="climateChart" class="climate-chart hidden"></div>
           <a
             class="climate-source"
             href="https://power.larc.nasa.gov/"
