@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Hackathon1
 
 Otherworld Atlas compares Earth locations in Moon and Mars modes. Site profiles
@@ -196,3 +197,6 @@ python -m scripts.build_grid \
 Keep both `assets/earth_grid.bin` and `assets/earth_grid.json` when deploying
 the site. Their citations are shown beside the global-grid search results. The
 raster files themselves are only needed for rebuilding the grid.
+=======
+# Astronautical-analog-finder
+>>>>>>> analog-finder/main
