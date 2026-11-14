@@ -394,7 +394,13 @@ function gridTarget() {
     temperature: Number($("gridTemperature").value),
     elevation: Number($("gridElevation").value),
     slope: Number($("gridSlope").value),
-    aridity: Number($("gridAridity").value)
+    aridity: Number($("gridAridity").value),
+    weights: {
+      temperature: Number($("weightTemperature").value),
+      elevation: Number($("weightElevation").value),
+      slope: Number($("weightSlope").value),
+      aridity: Number($("weightAridity").value)
+    }
   };
 }
 
@@ -812,6 +818,57 @@ function renderMarsReferenceRows(regions) {
   });
 }
 
+function renderMarsSourceParameters(region) {
+  const body = $("marsSourceParameterRows");
+  body.replaceChildren();
+  const columns = marsReference.marsDataset.sourceColumns;
+
+  const appendRow = (parameterName, rawValue, weightField = null) => {
+    const row = document.createElement("tr");
+    const parameter = document.createElement("th");
+    parameter.scope = "row";
+    parameter.textContent = parameterName;
+    const value = document.createElement("td");
+    value.textContent = rawValue || "Not supplied";
+    const weight = document.createElement("td");
+    if (weightField) {
+      const label = weightField[0].toUpperCase() + weightField.slice(1);
+      weight.textContent = `${$(`weight${label}`).value}× · ${weightField}`;
+      weight.dataset.weightField = weightField;
+    } else {
+      weight.textContent = "Not scored · no comparable Earth-grid field";
+    }
+    row.append(parameter, value, weight);
+    body.appendChild(row);
+  };
+
+  columns.forEach((column, index) => {
+    const normalized = column.toLowerCase();
+    const weightField = normalized.includes("mean elevation (km)")
+      ? "elevation"
+      : normalized.includes("mean annual temp (c)") &&
+          !normalized.includes(" - min") &&
+          !normalized.includes(" - max")
+        ? "temperature"
+        : null;
+    appendRow(column, region.sourceValues[index], weightField);
+  });
+  appendRow(
+    "MOLA-derived regional slope",
+    formatReferenceValue(region.molaSlopeDegrees, "°", 2),
+    Number.isFinite(region.molaSlopeDegrees) ? "slope" : null
+  );
+}
+
+function updateMarsSourceWeights() {
+  document.querySelectorAll("#marsSourceParameterRows [data-weight-field]")
+    .forEach(cell => {
+      const field = cell.dataset.weightField;
+      const label = field[0].toUpperCase() + field.slice(1);
+      cell.textContent = `${$(`weight${label}`).value}× · ${field}`;
+    });
+}
+
 function renderParameterDefinitions(containerId, definition) {
   const container = $(containerId);
   const table = document.createElement("table");
@@ -878,8 +935,8 @@ async function loadMarsReference() {
       reference.parameterDefinitions.moon
     );
     $("marsReferenceStatus").textContent =
-      "Choose a region to use its MOLA-derived slope as the Earth slope target. " +
-      "Other planetary values are shown for context, not scored as Earth equivalents.";
+      "Choose a region to copy its supplied temperature/elevation and MOLA slope as numeric targets. " +
+      "These cross-planet values are not physical equivalences; unavailable Earth-grid fields are not scored.";
     renderMarsReferenceRows(regions);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -899,19 +956,32 @@ function selectMarsAnchor() {
       "No Mars anchor selected. Set each Earth search requirement manually.";
     return;
   }
-  if (!Number.isFinite(region.molaSlopeDegrees)) {
-    $("marsReferenceStatus").textContent =
-      `${region.name} has no usable MOLA slope sample. Set the Earth slope target manually.`;
-    return;
-  }
-
-  const slopeInput = $("gridSlope");
-  slopeInput.value = region.molaSlopeDegrees.toFixed(1);
-  slopeInput.dispatchEvent(new Event("input", { bubbles: true }));
+  const targets = [
+    ["temperature", region.spreadsheetMeanAnnualTemperatureC],
+    ["elevation", Number.isFinite(region.spreadsheetMeanElevationKm)
+      ? region.spreadsheetMeanElevationKm * 1000
+      : null],
+    ["slope", region.molaSlopeDegrees]
+  ];
+  const applied = [];
+  targets.forEach(([field, value]) => {
+    if (!Number.isFinite(value)) return;
+    const input = $(`grid${field[0].toUpperCase()}${field.slice(1)}`);
+    const boundedValue = Math.min(
+      Number(input.max),
+      Math.max(Number(input.min), value)
+    );
+    input.value = field === "slope"
+      ? boundedValue.toFixed(1)
+      : String(Math.round(boundedValue));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    applied.push(field);
+  });
+  renderMarsSourceParameters(region);
   $("marsReferenceStatus").textContent =
-    `${region.name}: MOLA slope estimate ${region.molaSlopeDegrees.toFixed(1)}° ` +
-    `sets the Earth slope target to ${slopeInput.value}°. This is a coarse terrain ` +
-    "comparison only; temperature, pressure, composition, and radiation are not scored.";
+    `${region.name}: copied available numeric targets (${applied.join(", ") || "none"}). ` +
+    "Aridity remains manual; pressure, geology, dust, radiation and other fields " +
+    "are shown as reference only because the Earth grid has no comparable measurements.";
 }
 
 function showPage(pageId, updateHistory = true) {
@@ -1561,6 +1631,8 @@ $("refreshClimate").addEventListener("click", () => {
 ].forEach(([inputId, outputId, format]) => {
   $(inputId).addEventListener("input", () => {
     $(outputId).textContent = format($(inputId).value);
+    const matrixOutput = $(`matrix${inputId.slice(4)}Target`);
+    if (matrixOutput) matrixOutput.textContent = format($(inputId).value);
     if (gridHasResults) {
       clearGridResults();
       $("gridSearchStatus").textContent =
@@ -1569,14 +1641,38 @@ $("refreshClimate").addEventListener("click", () => {
   });
 });
 
+[
+  "Temperature",
+  "Elevation",
+  "Slope",
+  "Aridity"
+].forEach(label => {
+  const weight = $(`weight${label}`);
+  weight.addEventListener("input", () => {
+    $(`weight${label}Value`).textContent = `${weight.value}×`;
+    updateMarsSourceWeights();
+    if (gridHasResults) {
+      clearGridResults();
+      $("gridSearchStatus").textContent =
+        "Parameter weights changed. Scan again to refresh the results.";
+    }
+  });
+});
+
 $("gridSearchBtn").addEventListener("click", () => {
   if (!gridReady || !gridWorker) return;
 
+  const target = gridTarget();
+  if (Object.values(target.weights).every(weight => weight === 0)) {
+    $("gridSearchStatus").textContent =
+      "Set at least one parameter weight above zero before scanning.";
+    return;
+  }
   clearGridResults();
   $("gridSearchBtn").disabled = true;
   $("gridSearchStatus").textContent =
     "Scanning the land tiles in the background…";
-  gridWorker.postMessage({ type: "SCAN", target: gridTarget() });
+  gridWorker.postMessage({ type: "SCAN", target });
 });
 
 initGlobe();

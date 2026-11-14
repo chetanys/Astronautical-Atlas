@@ -49,11 +49,13 @@ level, regional slope, and an aridity index. Aridity is
 drier conditions. Regridding and slope are regional screening estimates, not
 rover-scale measurements, safety certifications, or mission recommendations.
 The score is a normalized distance to user-entered values, not a probability.
-The current score divides each absolute field difference by that field's
-5th-to-95th percentile spread in the built Earth grid, averages four equally
-weighted differences, and maps the remaining similarity to 0–100. This
-normalization is data-dependent and has not been calibrated against expert
-analog rankings or rover outcomes.
+Users set each feature's weight from 0 (excluded) to 5; active absolute
+differences are divided by that field's 5th-to-95th percentile spread and
+combined as a weighted mean distance. The displayed similarity is
+`100 / (1 + weighted distance)`, so candidates remain ranked even when all
+targets are far outside Earth's observed range. This normalization is
+data-dependent and has not been calibrated against expert analog rankings or
+rover outcomes.
 
 ### Build the Earth land grid
 
@@ -102,10 +104,12 @@ temperature, pressure, radiation, dust, and regolith do not reproduce the
 Martian environment; they must not be described as equivalent.
 
 The shared spreadsheets include a 30-region Mars table and separate parameter
-dictionaries. The app preserves those values and provides an optional Mars
-region selector that copies only the MOLA-derived coarse slope into the Earth
-slope target; it does not treat the spreadsheet's pressure, temperature,
-geology, dust, or radiation values as Earth-equivalent scores. The sheets are
+dictionaries. The app preserves all supplied Mars row values and provides an
+optional region selector that copies the supplied temperature and elevation,
+plus MOLA-derived coarse slope, into numeric search targets. These raw
+cross-planet comparisons are not physical equivalences. Mars pressure,
+geology, dust, radiation, and all fields without a comparable Earth-grid layer
+remain reference-only and are excluded from the score. The sheets are
 project-provided reference material, not independently validated planetary
 measurements or a substitute for MOLA/PDS source products. Fields with no
 traceable observation, method, unit, period, and reuse rights must remain

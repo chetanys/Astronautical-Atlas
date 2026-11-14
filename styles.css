@@ -1457,6 +1457,34 @@ body[data-mode="mars"] .mode.btn-mission.active:hover {
   font: 8px/1.6 "DM Mono", monospace;
 }
 
+.parameter-matrix {
+  margin: 14px 0;
+  padding: 10px;
+  border: 1px solid #284353;
+  background: #0a1119;
+}
+.parameter-matrix > summary,
+.mars-definition-details > summary {
+  color: var(--cyan);
+  cursor: pointer;
+  font: 8px "DM Mono", monospace;
+}
+.parameter-matrix > p {
+  color: var(--muted);
+  font: 8px/1.6 "DM Mono", monospace;
+}
+.weight-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+}
+.weight-control input { width: 62px; }
+.weight-control output {
+  color: var(--accent);
+  min-width: 22px;
+}
+
 .grid-control {
   display: flex;
   justify-content: space-between;

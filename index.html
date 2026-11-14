@@ -147,7 +147,7 @@
     <section class="formula-card mars-source-card">
       <small class="eyebrow">MARS SOURCE DATA · 30 REGIONS</small>
       <h2>Mars reference regions and MOLA terrain context</h2>
-      <p>The table preserves the project-provided regional values and adds a MOLA topography/slope estimate from a representative coordinate or latitude band. Spreadsheet values are not independently validated; only the MOLA slope target can optionally populate the Earth search, and the Earth/Mars scale and method differences remain.</p>
+      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Selecting a region copies available temperature, elevation and MOLA slope numbers into the weighted search matrix. This is raw numeric screening only: planetary environments, datums and measurement methods are not equivalent.</p>
       <p id="marsDataStatus" role="status" aria-live="polite">Loading Mars source data…</p>
       <p>Spreadsheet values are project-provided; the project owner confirms redistribution rights. Scientific accuracy and original methods still require independent review.</p>
       <div class="mars-table-wrap">
@@ -171,16 +171,27 @@
       <a href="https://docs.google.com/spreadsheets/d/1isKULZdfIeRs2tJ2pnld8Zt39ovk8vLZS_bUmYmyqQM/edit" target="_blank" rel="noopener noreferrer">Lunar parameter definitions ↗</a>
       <details class="mars-definition-details">
         <summary>View all supplied Earth and lunar parameter definitions</summary>
+        <p>The Earth sheet contains parameter definitions, not a measured global Earth layer for every field. The current score only includes fields marked as available in the matrix.</p>
         <h3>Earth analog fields</h3>
         <div id="earthParameterDefinitions" class="mars-table-wrap"></div>
         <h3>Lunar fields</h3>
         <div id="lunarParameterDefinitions" class="mars-table-wrap"></div>
       </details>
+      <details class="mars-definition-details">
+        <summary>Full Mars parameter matrix: source values, scoreability and weights</summary>
+        <p>Every source-sheet field is listed for the selected region. Temperature, elevation and MOLA slope show their current search weights; fields without comparable Earth-grid measurements remain unscored.</p>
+        <div class="mars-table-wrap">
+          <table class="risk-review-table">
+            <thead><tr><th scope="col">SOURCE PARAMETER</th><th scope="col">SPREADSHEET VALUE</th><th scope="col">CURRENT WEIGHT / STATUS</th></tr></thead>
+            <tbody id="marsSourceParameterRows"></tbody>
+          </table>
+        </div>
+      </details>
     </section>
     <section class="formula-card">
       <small class="eyebrow">GRID SCORING</small>
       <h2>How the current ranking works</h2>
-      <p>The worker computes a normalized absolute difference for temperature, elevation, slope and aridity, using each field's 5th-to-95th percentile spread in this dataset. It averages the four differences and converts the remaining similarity to a 0–100 score. All four fields have equal weight.</p>
+      <p>The worker computes a normalized absolute difference for active temperature, elevation, slope and aridity fields, using each field's 5th-to-95th percentile spread in this dataset. User weights determine each field's share; zero excludes a field. The weighted distance is mapped to a 0–100 relative score with 100 ÷ (1 + distance), so even distant targets retain a meaningful rank.</p>
       <p>The score is relative to this dataset and formula. It is not a probability, hardware qualification score, or claim that a location reproduces lunar or Martian conditions.</p>
       <a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations ↗</a>
       <a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 ↗</a>
@@ -363,13 +374,13 @@
           <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
         </label>
         <input class="range" id="gridTemperature" type="range"
-          min="-80" max="50" step="1" value="-10">
+          min="-120" max="50" step="1" value="-10">
         <label class="grid-control" for="gridElevation">
           <span>ELEVATION</span>
           <output id="gridElevationValue" for="gridElevation">1,800 m</output>
         </label>
         <input class="range" id="gridElevation" type="range"
-          min="-500" max="9000" step="50" value="1800">
+          min="-6000" max="9000" step="50" value="1800">
         <label class="grid-control" for="gridSlope">
           <span>SLOPE</span>
           <output id="gridSlopeValue" for="gridSlope">15°</output>
@@ -382,6 +393,21 @@
         </label>
         <input class="range" id="gridAridity" type="range"
           min="0" max="10" step="1" value="8">
+        <details class="parameter-matrix" open>
+          <summary>WEIGHTED PARAMETER MATRIX · 4 EARTH GRID FIELDS</summary>
+          <p>Set importance from 0× (exclude) to 5×. Only these measured grid fields are scoreable; the supplied sheets contain additional reference fields without corresponding Earth-grid data.</p>
+          <div class="mars-table-wrap">
+            <table class="risk-review-table">
+              <thead><tr><th scope="col">PARAMETER</th><th scope="col">TARGET</th><th scope="col">WEIGHT</th><th scope="col">EARTH GRID DATA</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Mean temperature</th><td id="matrixTemperatureTarget">−10 °C</td><td><label class="weight-control" for="weightTemperature"><input id="weightTemperature" type="range" min="0" max="5" step="0.5" value="1"><output id="weightTemperatureValue">1×</output></label></td><td>Available · 2025 annual</td></tr>
+                <tr><th scope="row">Elevation</th><td id="matrixElevationTarget">1,800 m</td><td><label class="weight-control" for="weightElevation"><input id="weightElevation" type="range" min="0" max="5" step="0.5" value="1"><output id="weightElevationValue">1×</output></label></td><td>Available · static</td></tr>
+                <tr><th scope="row">Slope</th><td id="matrixSlopeTarget">15°</td><td><label class="weight-control" for="weightSlope"><input id="weightSlope" type="range" min="0" max="5" step="0.5" value="1"><output id="weightSlopeValue">1×</output></label></td><td>Available · 15 km estimate</td></tr>
+                <tr><th scope="row">Aridity</th><td id="matrixAridityTarget">8 / 10</td><td><label class="weight-control" for="weightAridity"><input id="weightAridity" type="range" min="0" max="5" step="0.5" value="1"><output id="weightAridityValue">1×</output></label></td><td>Available · derived proxy</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
         <button id="gridSearchBtn" class="btn-mission grid-search-button"
           type="button" disabled>
           SCAN GLOBAL GRID

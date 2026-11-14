@@ -78,14 +78,26 @@ function scanGrid(target) {
     throw new Error("Global grid data has not loaded.");
   }
 
-  const targetValues = [
-    target.temperature,
-    target.elevation,
-    target.slope,
-    target.aridity
-  ];
-  if (!targetValues.every(Number.isFinite)) {
+  const fields = Object.keys(FIELD_OFFSETS);
+  if (!fields.every(field => Number.isFinite(target[field]))) {
     throw new Error("Search targets must all be finite numbers.");
+  }
+  const weights = target.weights;
+  if (
+    !weights ||
+    !fields.every(field =>
+      Number.isFinite(weights[field]) && weights[field] >= 0
+    )
+  ) {
+    throw new Error("Parameter weights must be finite, non-negative numbers.");
+  }
+  const activeFields = fields.filter(field => weights[field] > 0);
+  const totalWeight = activeFields.reduce(
+    (total, field) => total + weights[field],
+    0
+  );
+  if (totalWeight === 0) {
+    throw new Error("Give at least one parameter a weight above zero.");
   }
 
   const results = [];
@@ -96,26 +108,28 @@ function scanGrid(target) {
     const elevation = grid[offset + FIELD_OFFSETS.elevation];
     const slope = grid[offset + FIELD_OFFSETS.slope];
     const aridity = grid[offset + FIELD_OFFSETS.aridity];
-    const normalizedError = Object.entries(FIELD_OFFSETS).reduce(
-      (error, [field, fieldOffset]) =>
+    const normalizedError = activeFields.reduce(
+      (error, field) =>
         error +
-        Math.abs(grid[offset + fieldOffset] - target[field]) /
+        weights[field] *
+          Math.abs(grid[offset + FIELD_OFFSETS[field]] - target[field]) /
           metadata.scoreScales[field],
       0
-    ) / Object.keys(FIELD_OFFSETS).length;
+    ) / totalWeight;
     const candidate = {
       latitude,
       longitude,
-      score: Math.max(0, Math.round((1 - normalizedError) * 100)),
+      score: Math.round(100 / (1 + normalizedError)),
       temperature,
       elevation,
       slope,
-      aridity
+      aridity,
+      normalizedError
     };
 
     const position = results.findIndex(existing =>
-      candidate.score > existing.score ||
-      (candidate.score === existing.score &&
+      candidate.normalizedError < existing.normalizedError ||
+      (candidate.normalizedError === existing.normalizedError &&
         (candidate.latitude < existing.latitude ||
           (candidate.latitude === existing.latitude &&
             candidate.longitude < existing.longitude)))
@@ -128,7 +142,7 @@ function scanGrid(target) {
     }
   }
 
-  return results;
+  return results.map(({ normalizedError, ...candidate }) => candidate);
 }
 
 self.addEventListener("message", async event => {
