@@ -1,18 +1,14 @@
-const GRID_ROWS = 720;
-const GRID_COLUMNS = 1440;
-const VALUES_PER_CELL = 4;
+const VALUES_PER_RECORD = 6;
 const RESULT_LIMIT = 10;
-const EXPECTED_BYTES =
-  GRID_ROWS * GRID_COLUMNS * VALUES_PER_CELL * Float32Array.BYTES_PER_ELEMENT;
-const FIELD_RANGES = {
-  temperature: 130,
-  elevation: 9500,
-  slope: 90,
-  aridity: 10
+const FIELD_OFFSETS = {
+  temperature: 2,
+  elevation: 3,
+  slope: 4,
+  aridity: 5
 };
 
 let grid = null;
-let validCellCount = 0;
+let metadata = null;
 
 async function loadGrid() {
   const [gridResponse, metadataResponse] = await Promise.all([
@@ -22,8 +18,7 @@ async function loadGrid() {
     const detail = error instanceof Error ? ` (${error.message})` : "";
     throw new Error(
       `Global grid data or its source metadata is missing${detail}. ` +
-      "Generate assets/earth_grid.bin and assets/earth_grid.json using the README instructions, " +
-      "then serve the site over HTTP. The named-site explorer is still available."
+      "Build assets/earth_grid.bin and assets/earth_grid.json using the README instructions."
     );
   });
 
@@ -33,13 +28,11 @@ async function loadGrid() {
       : metadataResponse.status;
     throw new Error(
       `Global grid data or source metadata is unavailable (HTTP ${status}). ` +
-      "Generate both grid assets using the README instructions. " +
-      "The named-site explorer is still available."
+      "Build both grid assets using the README instructions."
     );
   }
 
   let buffer;
-  let metadata;
   try {
     [buffer, metadata] = await Promise.all([
       gridResponse.arrayBuffer(),
@@ -47,55 +40,41 @@ async function loadGrid() {
     ]);
   } catch (error) {
     const detail = error instanceof Error ? ` (${error.message})` : "";
-    throw new Error(
-      `Could not read the global grid assets${detail}. Rebuild both grid files.`
-    );
-  }
-
-  if (buffer.byteLength !== EXPECTED_BYTES) {
-    throw new Error(
-      `Global grid has ${buffer.byteLength} bytes; expected ${EXPECTED_BYTES}. ` +
-      "Rebuild assets/earth_grid.bin."
-    );
+    throw new Error(`Could not read the global grid assets${detail}.`);
   }
 
   if (
-    metadata?.rows !== GRID_ROWS ||
-    metadata?.columns !== GRID_COLUMNS ||
-    !Array.isArray(metadata?.citations)
+    metadata?.schemaVersion !== 2 ||
+    metadata?.recordStride !== VALUES_PER_RECORD ||
+    !Number.isInteger(metadata?.pointCount) ||
+    metadata.pointCount <= 0 ||
+    !Number.isFinite(metadata?.latitudeCoverage?.minimum) ||
+    !Number.isFinite(metadata?.latitudeCoverage?.maximum) ||
+    !Object.keys(FIELD_OFFSETS).every(field =>
+      Number.isFinite(metadata?.scoreScales?.[field]) &&
+      metadata.scoreScales[field] > 0
+    ) ||
+    !Array.isArray(metadata?.citations) ||
+    buffer.byteLength !== metadata.pointCount * VALUES_PER_RECORD * Float32Array.BYTES_PER_ELEMENT
   ) {
     throw new Error(
-      "Grid source metadata is invalid or does not match the binary. " +
-      "Rebuild both grid assets."
+      "Global grid metadata does not match the binary data. Rebuild both grid assets."
     );
   }
 
   grid = new Float32Array(buffer);
-  for (let offset = 0; offset < grid.length; offset += VALUES_PER_CELL) {
-    if (
-      Number.isFinite(grid[offset]) &&
-      Number.isFinite(grid[offset + 1]) &&
-      Number.isFinite(grid[offset + 2]) &&
-      Number.isFinite(grid[offset + 3])
-    ) {
-      validCellCount += 1;
-    }
-  }
-
-  if (validCellCount === 0) {
-    grid = null;
-    throw new Error("Global grid contains no valid land cells.");
-  }
-
   self.postMessage({
     type: "READY",
-    count: validCellCount,
+    count: metadata.pointCount,
+    resolutionMeters: metadata.cellSizeMeters,
+    sourcePeriod: metadata.sourcePeriod,
+    latitudeCoverage: metadata.latitudeCoverage,
     citations: metadata.citations
   });
 }
 
 function scanGrid(target) {
-  if (!grid) {
+  if (!grid || !metadata) {
     throw new Error("Global grid data has not loaded.");
   }
 
@@ -110,29 +89,23 @@ function scanGrid(target) {
   }
 
   const results = [];
-  for (let cell = 0; cell < GRID_ROWS * GRID_COLUMNS; cell += 1) {
-    const offset = cell * VALUES_PER_CELL;
-    const temperature = grid[offset];
-    const elevation = grid[offset + 1];
-    const slope = grid[offset + 2];
-    const aridity = grid[offset + 3];
-    if (
-      !Number.isFinite(temperature) ||
-      !Number.isFinite(elevation) ||
-      !Number.isFinite(slope) ||
-      !Number.isFinite(aridity)
-    ) {
-      continue;
-    }
-
-    const normalizedError = (
-      Math.abs(temperature - target.temperature) / FIELD_RANGES.temperature +
-      Math.abs(elevation - target.elevation) / FIELD_RANGES.elevation +
-      Math.abs(slope - target.slope) / FIELD_RANGES.slope +
-      Math.abs(aridity - target.aridity) / FIELD_RANGES.aridity
-    ) / VALUES_PER_CELL;
+  for (let offset = 0; offset < grid.length; offset += VALUES_PER_RECORD) {
+    const latitude = grid[offset];
+    const longitude = grid[offset + 1];
+    const temperature = grid[offset + FIELD_OFFSETS.temperature];
+    const elevation = grid[offset + FIELD_OFFSETS.elevation];
+    const slope = grid[offset + FIELD_OFFSETS.slope];
+    const aridity = grid[offset + FIELD_OFFSETS.aridity];
+    const normalizedError = Object.entries(FIELD_OFFSETS).reduce(
+      (error, [field, fieldOffset]) =>
+        error +
+        Math.abs(grid[offset + fieldOffset] - target[field]) /
+          metadata.scoreScales[field],
+      0
+    ) / Object.keys(FIELD_OFFSETS).length;
     const candidate = {
-      cell,
+      latitude,
+      longitude,
       score: Math.max(0, Math.round((1 - normalizedError) * 100)),
       temperature,
       elevation,
@@ -142,7 +115,10 @@ function scanGrid(target) {
 
     const position = results.findIndex(existing =>
       candidate.score > existing.score ||
-      (candidate.score === existing.score && candidate.cell < existing.cell)
+      (candidate.score === existing.score &&
+        (candidate.latitude < existing.latitude ||
+          (candidate.latitude === existing.latitude &&
+            candidate.longitude < existing.longitude)))
     );
     if (position === -1) {
       if (results.length < RESULT_LIMIT) results.push(candidate);
@@ -152,19 +128,7 @@ function scanGrid(target) {
     }
   }
 
-  return results.map(result => {
-    const row = Math.floor(result.cell / GRID_COLUMNS);
-    const column = result.cell % GRID_COLUMNS;
-    return {
-      latitude: 90 - (row + 0.5) * 0.25,
-      longitude: -180 + (column + 0.5) * 0.25,
-      score: result.score,
-      temperature: result.temperature,
-      elevation: result.elevation,
-      slope: result.slope,
-      aridity: result.aridity
-    };
-  });
+  return results;
 }
 
 self.addEventListener("message", async event => {
@@ -176,8 +140,9 @@ self.addEventListener("message", async event => {
       self.postMessage({
         type: "RESULTS",
         results,
-        validCellCount,
-        totalCellCount: GRID_ROWS * GRID_COLUMNS
+        validCellCount: metadata.pointCount,
+        totalCellCount: metadata.candidateGridCells,
+        resolutionMeters: metadata.cellSizeMeters
       });
     } else {
       throw new Error(`Unknown worker message: ${event.data.type}`);

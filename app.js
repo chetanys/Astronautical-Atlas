@@ -199,6 +199,9 @@ let selectedSite = null;
 let gridWorker = null;
 let gridReady = false;
 let gridHasResults = false;
+let gridScanResults = [];
+let selectedSubsystem = "wheels";
+let marsReference = null;
 const climateCache = new Map();
 let activeClimateKey = null;
 let climateRequestId = 0;
@@ -398,6 +401,7 @@ function gridTarget() {
 function renderGridResults(results) {
   gridMarkers.forEach(marker => marker.remove());
   gridMarkers = [];
+  gridScanResults = results;
   $("gridResults").replaceChildren();
 
   results.forEach((result, index) => {
@@ -454,6 +458,7 @@ function renderGridResults(results) {
   $("gridMapTip").textContent = gridHasResults
     ? "ⓘ Click a ranked result or map marker to inspect its location."
     : "ⓘ Run a scan to place its top matches on the globe.";
+  updateRoverCandidates(results);
 }
 
 function clearGridResults() {
@@ -461,9 +466,478 @@ function clearGridResults() {
   gridMarkers = [];
   $("gridResults").replaceChildren();
   gridHasResults = false;
+  gridScanResults = [];
   $("gridMapHint").classList.remove("hidden");
   $("gridMapTip").textContent =
     "ⓘ Run a scan to place its top matches on the globe.";
+  updateRoverCandidates([]);
+}
+
+const SUBSYSTEMS = {
+  wheels: {
+    label: "MOBILITY · WHEELS",
+    title: "Terrain slope comparison",
+    field: "slope",
+    targetLabel: "TARGET SLOPE",
+    valueLabel: "GRID-CELL SLOPE",
+    scale: 90,
+    caveat: "Coarse global-grid slope only. This does not measure wheel traction, rock hazards, bearing loads or rover traversability. Confirm using high-resolution terrain data and a regolith simulant bin."
+  },
+  power: {
+    label: "ENERGY · POWER",
+    title: "Aridity context only",
+    field: "aridity",
+    targetLabel: "TARGET ARIDITY",
+    valueLabel: "GRID-CELL ARIDITY",
+    scale: 10,
+    caveat: "Aridity is not solar irradiance or rover power availability. The current grid cannot score power generation, dust accumulation, battery state or energy margin. Direct solar and dust data are not available."
+  },
+  thermal: {
+    label: "ENVIRONMENT · THERMAL",
+    title: "Mean temperature comparison",
+    field: "temperature",
+    targetLabel: "TARGET MEAN TEMP",
+    valueLabel: "GRID-CELL MEAN TEMP",
+    scale: 130,
+    caveat: "Annual mean temperature is a broad climate proxy. It does not represent surface extremes, thermal cycling, vacuum, internal hardware temperatures or qualification limits."
+  },
+  electronics: {
+    label: "AVIONICS · ELECTRONICS / OPTICS",
+    title: "Qualification gap unavailable",
+    unavailable: true,
+    caveat: "The global grid has no radiation, dust optical depth, illumination geometry, lens contamination or subsystem operating thresholds. Use a thermal-vacuum chamber and spotlight / optics rig."
+  },
+  comms: {
+    label: "LINK · COMMUNICATIONS",
+    title: "Link analysis unavailable",
+    unavailable: true,
+    caveat: "The current grid contains no antenna pattern, link budget, relay geometry, terrain obstruction or mission schedule data. No communications coverage claim can be made from this scan."
+  }
+};
+
+const RISK_REVIEW_SYSTEMS = [
+  {
+    name: "Wheels / mobility",
+    screen: (candidate, target) => candidate
+      ? `Grid slope ${candidate.slope.toFixed(1)}°; target ${target.slope.toFixed(1)}° (gap ${Math.abs(candidate.slope - target.slope).toFixed(1)}°).`
+      : "Slope comparison requires a scan result.",
+    notTested: "Traction, slip, sinkage, wheel loads, rock strikes and traverse safety."
+  },
+  {
+    name: "Chassis / suspension",
+    screen: candidate => candidate
+      ? `Regional elevation ${candidate.elevation.toFixed(0)} m and grid slope ${candidate.slope.toFixed(1)}° (context only).`
+      : "Elevation and slope context requires a scan result.",
+    notTested: "Chassis stress, clearance, tipping margin, obstacle geometry and suspension loading."
+  },
+  {
+    name: "Power / energy",
+    screen: candidate => candidate
+      ? `Aridity ${candidate.aridity.toFixed(1)}/10 is available as a dryness proxy only.`
+      : "Aridity proxy requires a scan result.",
+    notTested: "Solar/RTG output, battery state, mission energy margin and dust effects."
+  },
+  {
+    name: "Thermal",
+    screen: candidate => candidate
+      ? `Grid mean temperature ${candidate.temperature.toFixed(1)} °C (broad climate context).`
+      : "Mean-temperature comparison requires a scan result.",
+    notTested: "Temperature extremes, thermal cycling, vacuum behavior and component limits."
+  },
+  {
+    name: "Electronics / optics",
+    screen: () => "No directly relevant radiation, dust-opacity or illumination measurements.",
+    notTested: "Radiation dose, dust deposition, camera contamination, optical conditions and electronics limits."
+  },
+  {
+    name: "Communications",
+    screen: () => "No direct communications measurements.",
+    notTested: "Antenna pattern, link budget, relay availability, terrain blockage and data rate."
+  },
+  {
+    name: "Planetary materials / environment",
+    screen: () => "The supplied Moon/Earth dictionaries describe fields; they do not contain measurement rasters for the global scan.",
+    notTested: "Mineral and oxide fractions, dust/regolith, ice/water, thermal inertia, pressure, wind, radiation and geological activity."
+  }
+];
+
+function updateRoverCandidates(results) {
+  const picker = $("roverCandidate");
+  if (!picker) return;
+  const previous = picker.value;
+  picker.replaceChildren();
+
+  if (!results.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Scan the grid first";
+    picker.appendChild(option);
+    picker.disabled = true;
+    updateRiskReviewCandidates([]);
+    renderSubsystemReport();
+    return;
+  }
+
+  results.forEach((result, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent =
+      `#${String(index + 1).padStart(2, "0")} · ` +
+      `${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}° · ` +
+      `${result.score}% match`;
+    picker.appendChild(option);
+  });
+  picker.disabled = false;
+  const previousIndex = previous === "" ? -1 : Number(previous);
+  const selectedIndex =
+    Number.isInteger(previousIndex) && results[previousIndex] ? previous : "0";
+  picker.value = selectedIndex;
+  updateRiskReviewCandidates(results, selectedIndex);
+  renderSubsystemReport();
+}
+
+function updateRiskReviewCandidates(results, selectedIndex = "0") {
+  const picker = $("riskReviewCandidate");
+  if (!picker) return;
+  picker.replaceChildren();
+
+  if (!results.length) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Scan the grid first";
+    picker.appendChild(option);
+    picker.disabled = true;
+    renderRiskReview();
+    return;
+  }
+
+  results.forEach((result, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = index === 0
+      ? `Best overall match · #01 · ${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°`
+      : `Candidate #${String(index + 1).padStart(2, "0")} · ${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°`;
+    picker.appendChild(option);
+  });
+  picker.disabled = false;
+  picker.value = selectedIndex;
+  renderRiskReview();
+}
+
+function roverCandidate() {
+  const value = $("roverCandidate").value;
+  if (value === "") return null;
+  const index = Number(value);
+  return Number.isInteger(index) ? gridScanResults[index] : null;
+}
+
+function showSubsystemMetrics(rows) {
+  const list = $("subsystemMetrics");
+  list.replaceChildren();
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "subsystem-metric";
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = label;
+    description.textContent = value;
+    row.append(term, description);
+    list.appendChild(row);
+  });
+}
+
+function renderSubsystemReport() {
+  renderRiskReview();
+  const subsystem = SUBSYSTEMS[selectedSubsystem];
+  const candidate = roverCandidate();
+  const target = gridTarget();
+  $("subsystemLabel").textContent = subsystem.label;
+  $("subsystemTitle").textContent = subsystem.title;
+
+  if (subsystem.unavailable) {
+    $("coverageValue").textContent = "NOT SCORED";
+    $("coverageBar").style.width = "0%";
+    $("coverageBar").className = "unavailable";
+    showSubsystemMetrics([
+      ["AVAILABLE INPUTS", candidate ? "No subsystem-specific data" : "No scan result"],
+      ["ENGINEERING GAP", "Required source data / limits not in prototype"]
+    ]);
+    $("subsystemCaveat").textContent = subsystem.caveat;
+    return;
+  }
+
+  if (!candidate) {
+    $("coverageValue").textContent = "--";
+    $("coverageBar").style.width = "0%";
+    $("coverageBar").className = "";
+    showSubsystemMetrics([
+      ["TARGET", "Set requirements and scan the global grid"],
+      ["CANDIDATE", "No result selected"],
+      ["GAP", "Not available"]
+    ]);
+    $("subsystemCaveat").textContent =
+      "This is a screening prototype, not a rover qualification model. Run a global scan to compare the selected target with a candidate cell.";
+    return;
+  }
+
+  const field = subsystem.field;
+  const gap = Math.abs(target[field] - candidate[field]);
+  const coverage = Math.max(0, Math.round((1 - gap / subsystem.scale) * 100));
+  const category = coverage >= 80 ? "good" : coverage >= 50 ? "partial" : "poor";
+  const display = field === "temperature"
+    ? value => `${value.toFixed(1)} °C`
+    : field === "slope"
+      ? value => `${value.toFixed(1)}°`
+      : value => `${value.toFixed(1)} / 10`;
+
+  $("coverageValue").textContent = `${coverage}% · RELATIVE FIT`;
+  $("coverageBar").style.width = `${coverage}%`;
+  $("coverageBar").className = category;
+  showSubsystemMetrics([
+    [subsystem.targetLabel, display(target[field])],
+    [subsystem.valueLabel, display(candidate[field])],
+    ["ABSOLUTE GAP", display(gap)],
+    ["SCREENING BAND", category === "good" ? "Closer match" : category === "partial" ? "Partial match" : "Large mismatch"],
+    ["CANDIDATE", `${candidate.latitude.toFixed(2)}°, ${candidate.longitude.toFixed(2)}°`]
+  ]);
+  $("subsystemCaveat").textContent = subsystem.caveat;
+}
+
+function renderRiskReview() {
+  const best = gridScanResults[0];
+  const reviewIndex = Number($("riskReviewCandidate")?.value ?? 0);
+  const candidate = Number.isInteger(reviewIndex)
+    ? gridScanResults[reviewIndex] ?? null
+    : null;
+  const bestMatch = $("riskBestMatch");
+  const bestScore = $("riskBestMatchScore");
+  const context = $("riskReviewContext");
+
+  bestMatch.textContent = best
+    ? `#01 · ${best.latitude.toFixed(2)}°, ${best.longitude.toFixed(2)}°`
+    : "Run a grid scan to find candidates.";
+  bestScore.textContent = best
+    ? `${best.score}% relative match to the current search`
+    : "No result yet";
+
+  context.textContent = candidate
+    ? `Reviewing ${reviewIndex === 0 ? "the best overall grid match" : `candidate #${String(reviewIndex + 1).padStart(2, "0")}`} at ${candidate.latitude.toFixed(2)}°, ${candidate.longitude.toFixed(2)}°.`
+    : "The best overall match is based on the current grid search criteria. Choose another scan candidate above to inspect that analog instead.";
+
+  const rows = $("riskReviewRows");
+  if (!rows) return;
+  rows.replaceChildren();
+  const target = gridTarget();
+  RISK_REVIEW_SYSTEMS.forEach(system => {
+    const row = document.createElement("tr");
+    const name = document.createElement("th");
+    name.scope = "row";
+    name.textContent = system.name;
+    const screen = document.createElement("td");
+    screen.textContent = system.screen(candidate, target);
+    const notTested = document.createElement("td");
+    notTested.textContent = system.notTested;
+    row.append(name, screen, notTested);
+    rows.appendChild(row);
+  });
+}
+
+function renderAnalogCatalog() {
+  const container = $("analogsCatalog");
+  if (!container) return;
+  container.replaceChildren();
+
+  SITES.forEach(site => {
+    const card = document.createElement("article");
+    card.className = "analog-card";
+    const eyebrow = document.createElement("small");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = site.type === "terrain"
+      ? "TERRAIN REFERENCE"
+      : "CLIMATE REFERENCE";
+    const heading = document.createElement("h2");
+    heading.textContent = site.name;
+    const location = document.createElement("p");
+    location.textContent =
+      `${site.country} · ${site.lat.toFixed(2)}°, ${site.lon.toFixed(2)}°`;
+    const environment = document.createElement("strong");
+    environment.textContent = site.climate;
+    const description = document.createElement("p");
+    description.textContent = site.description;
+    const action = document.createElement("button");
+    action.className = "secondary-action";
+    action.type = "button";
+    action.textContent = "OPEN IN APPLICATION →";
+    action.addEventListener("click", () => {
+      showPage("atlasView");
+      openSite({ ...site, score: scoreSite(site) });
+    });
+    card.append(eyebrow, heading, location, environment, description, action);
+    container.appendChild(card);
+  });
+}
+
+function formatReferenceValue(value, unit, decimals = 1) {
+  return Number.isFinite(value) ? `${value.toFixed(decimals)} ${unit}` : "Not available";
+}
+
+function renderMarsReferenceRows(regions) {
+  const body = $("marsReferenceRows");
+  body.replaceChildren();
+
+  regions.forEach(region => {
+    const row = document.createElement("tr");
+    const center = Number.isFinite(region.centerLatitude)
+      ? `${region.centerLatitude.toFixed(1)}°, ${
+        Number.isFinite(region.centerLongitude)
+          ? `${region.centerLongitude.toFixed(1)}°`
+          : "all longitudes"
+      }`
+      : "Not available";
+    const values = [
+      region.name,
+      center,
+      formatReferenceValue(region.molaTopographyMeters, "m"),
+      formatReferenceValue(region.molaSlopeDegrees, "°"),
+      formatReferenceValue(region.spreadsheetMeanAnnualTemperatureC, "°C"),
+      formatReferenceValue(region.spreadsheetMeanPressurePa, "Pa", 0)
+    ];
+    values.forEach((value, index) => {
+      const cell = document.createElement(index === 0 ? "th" : "td");
+      if (index === 0) cell.scope = "row";
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+    body.appendChild(row);
+  });
+}
+
+function renderParameterDefinitions(containerId, definition) {
+  const container = $(containerId);
+  const table = document.createElement("table");
+  table.className = "risk-review-table";
+  const head = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  definition.columns.forEach(column => {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    cell.textContent = column;
+    headerRow.appendChild(cell);
+  });
+  head.appendChild(headerRow);
+  const body = document.createElement("tbody");
+  definition.rows.forEach(values => {
+    const row = document.createElement("tr");
+    values.forEach(value => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+    body.appendChild(row);
+  });
+  table.append(head, body);
+  container.replaceChildren(table);
+}
+
+async function loadMarsReference() {
+  try {
+    const response = await fetch("./assets/mars_reference.json");
+    if (!response.ok) {
+      throw new Error(`Mars reference data request failed (HTTP ${response.status}).`);
+    }
+    const reference = await response.json();
+    const regions = reference?.marsDataset?.regions;
+    if (reference?.schemaVersion !== 1 || !Array.isArray(regions) || !regions.length) {
+      throw new Error("Mars reference data has an unsupported or empty format.");
+    }
+
+    marsReference = reference;
+    const picker = $("marsAnchorRegion");
+    picker.replaceChildren();
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Choose a Mars region (optional)";
+    picker.appendChild(placeholder);
+    regions.forEach(region => {
+      const option = document.createElement("option");
+      option.value = region.id;
+      option.textContent = region.name;
+      picker.appendChild(option);
+    });
+    picker.disabled = false;
+    $("marsDataStatus").textContent =
+      `${regions.length} supplied Mars regions · ` +
+      `${reference.parameterDefinitions.earth.rows.length} Earth field definitions · ` +
+      `${reference.parameterDefinitions.moon.rows.length} lunar field definitions.`;
+    renderParameterDefinitions(
+      "earthParameterDefinitions",
+      reference.parameterDefinitions.earth
+    );
+    renderParameterDefinitions(
+      "lunarParameterDefinitions",
+      reference.parameterDefinitions.moon
+    );
+    $("marsReferenceStatus").textContent =
+      "Choose a region to use its MOLA-derived slope as the Earth slope target. " +
+      "Other planetary values are shown for context, not scored as Earth equivalents.";
+    renderMarsReferenceRows(regions);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    $("marsDataStatus").textContent = `Mars source data unavailable: ${message}`;
+    $("marsReferenceStatus").textContent =
+      "Mars reference data could not be loaded. Manual Earth requirements remain available.";
+    console.error("Could not load Mars reference data.", error);
+  }
+}
+
+function selectMarsAnchor() {
+  const region = marsReference?.marsDataset.regions.find(
+    item => item.id === $("marsAnchorRegion").value
+  );
+  if (!region) {
+    $("marsReferenceStatus").textContent =
+      "No Mars anchor selected. Set each Earth search requirement manually.";
+    return;
+  }
+  if (!Number.isFinite(region.molaSlopeDegrees)) {
+    $("marsReferenceStatus").textContent =
+      `${region.name} has no usable MOLA slope sample. Set the Earth slope target manually.`;
+    return;
+  }
+
+  const slopeInput = $("gridSlope");
+  slopeInput.value = region.molaSlopeDegrees.toFixed(1);
+  slopeInput.dispatchEvent(new Event("input", { bubbles: true }));
+  $("marsReferenceStatus").textContent =
+    `${region.name}: MOLA slope estimate ${region.molaSlopeDegrees.toFixed(1)}° ` +
+    `sets the Earth slope target to ${slopeInput.value}°. This is a coarse terrain ` +
+    "comparison only; temperature, pressure, composition, and radiation are not scored.";
+}
+
+function showPage(pageId, updateHistory = true) {
+  const views = document.querySelectorAll(".page-view");
+  views.forEach(view => {
+    const active = view.id === pageId;
+    view.classList.toggle("hidden", !active);
+    if (active) view.removeAttribute("hidden");
+    else view.setAttribute("hidden", "");
+  });
+
+  document.querySelectorAll(".site-nav [data-page]").forEach(button => {
+    button.classList.toggle("active", button.dataset.page === pageId);
+  });
+
+  const isAppPage = pageId === "atlasView" || pageId === "roverView";
+  $("moonBtn").closest(".modes").classList.toggle("hidden", !isAppPage);
+  $("marsTargetControls").classList.toggle("hidden", mode !== "mars" || pageId !== "atlasView");
+  document.body.dataset.page = pageId;
+
+  if (updateHistory) {
+    const slug = pageId.replace("View", "").toLowerCase();
+    history.replaceState(null, "", `${location.pathname}${location.search}#${slug}`);
+  }
+
+  if (pageId === "roverView") renderSubsystemReport();
 }
 
 function initGridSearch() {
@@ -482,18 +956,27 @@ function initGridSearch() {
     if (type === "READY") {
       gridReady = true;
       $("gridSearchBtn").disabled = false;
+      const coverage = event.data.latitudeCoverage;
       $("gridSearchStatus").textContent =
-        `Grid ready · ${event.data.count.toLocaleString()} land cells available.`;
+        `Grid ready · ${event.data.count.toLocaleString()} source-covered land tiles · ` +
+        `${(event.data.resolutionMeters / 1000).toFixed(0)} km equal-area · ` +
+        `${event.data.sourcePeriod} climate snapshot · latitude ` +
+        `${coverage.minimum.toFixed(1)} to ${coverage.maximum.toFixed(1)}°.`;
+      const coverageNote =
+        `Coverage: source-complete land cells between ${coverage.minimum.toFixed(1)}° ` +
+        `and ${coverage.maximum.toFixed(1)} latitude; cells with missing inputs are omitted.`;
       $("gridSourceDetails").textContent = event.data.citations.length
-        ? `Sources: ${event.data.citations.join(" · ")}`
-        : "Source citations were not included with this grid.";
+        ? `${coverageNote} Sources: ${event.data.citations.join(" · ")}`
+        : `${coverageNote} Source citations were not included with this grid.`;
       return;
     }
 
     if (type === "RESULTS") {
       $("gridSearchBtn").disabled = false;
       $("gridSearchStatus").textContent =
-        `Top ${event.data.results.length} matches from ${event.data.validCellCount.toLocaleString()} valid land cells (${event.data.totalCellCount.toLocaleString()} global cells scanned).`;
+        `Top ${event.data.results.length} candidates from ` +
+        `${event.data.validCellCount.toLocaleString()} source-covered land tiles scanned · ` +
+        `${(event.data.resolutionMeters / 1000).toFixed(0)} km equal-area.`;
       renderGridResults(event.data.results);
       return;
     }
@@ -526,6 +1009,12 @@ function initGlobe() {
   globe.addEventListener("error", event => {
     console.error("Could not load the NASA Earth model.", event);
     $("globeFallback").classList.remove("hidden");
+  });
+
+  $("retryGlobeModel").addEventListener("click", () => {
+    const modelUrl = new URL(globe.getAttribute("src"), document.baseURI);
+    modelUrl.searchParams.set("retry", String(Date.now()));
+    globe.src = modelUrl.href;
   });
 }
 
@@ -886,7 +1375,9 @@ function setMode(nextMode) {
   $("planetIcon").textContent = mode === "moon" ? "☾" : "♂";
 
   $("modeDescription").textContent =
-    "Set your surface requirements, then scan Earth's global grid for matching locations.";
+    mode === "mars"
+      ? "Set Earth-side requirements or select a Mars region to set a coarse MOLA slope target. The remaining fields are not assumed to be cross-planet equivalents."
+      : "Set your surface requirements, then scan Earth's global grid for matching locations.";
 
   document.documentElement.style.setProperty(
     "--accent",
@@ -900,10 +1391,113 @@ function setMode(nextMode) {
   updateSiteUrl();
   updateSunCalculator(Number($("sunLatitude").value));
   updateMap();
+  $("marsTargetControls").classList.toggle(
+    "hidden",
+    mode !== "mars" || document.body.dataset.page !== "atlasView"
+  );
 }
 
+$("marsAnchorRegion").addEventListener("change", selectMarsAnchor);
 $("moonBtn").addEventListener("click", () => setMode("moon"));
 $("marsBtn").addEventListener("click", () => setMode("mars"));
+
+document.querySelectorAll("[data-page]").forEach(button => {
+  button.addEventListener("click", () => showPage(button.dataset.page));
+});
+
+document.querySelectorAll(".subsystem-tabs [data-subsystem], .rover-hotspot")
+  .forEach(button => {
+    button.addEventListener("click", () => {
+      selectedSubsystem = button.dataset.subsystem;
+      document.querySelectorAll(".subsystem-tabs [data-subsystem]")
+        .forEach(tab => tab.classList.toggle(
+          "active",
+          tab.dataset.subsystem === selectedSubsystem
+        ));
+      renderSubsystemReport();
+    });
+  });
+
+$("riskManagementButton").addEventListener("click", event => {
+  const button = event.currentTarget;
+  const panel = $("riskManagementPanel");
+  const expanded = button.getAttribute("aria-expanded") !== "true";
+  button.setAttribute("aria-expanded", String(expanded));
+  button.textContent = expanded
+    ? "CLOSE ROVER RISK MANAGEMENT"
+    : "OPEN ROVER RISK MANAGEMENT";
+  panel.classList.toggle("hidden", !expanded);
+  if (expanded) renderRiskReview();
+});
+
+$("roverCandidate").addEventListener("change", () => {
+  $("riskReviewCandidate").value = $("roverCandidate").value;
+  renderSubsystemReport();
+});
+$("riskReviewCandidate").addEventListener("change", () => {
+  $("roverCandidate").value = $("riskReviewCandidate").value;
+  renderSubsystemReport();
+});
+$("roverPreset").addEventListener("change", () => {
+  $("roverPresetNote").textContent =
+    $("roverPreset").value === "perseverance"
+      ? "Reference visual: the Perseverance assembly. The scenario preset does not change this rover model or assert flight compatibility."
+      : "Conceptual lunar-scout scenario only. The Perseverance model remains a visual stand-in; no second rover design or verified capability is represented.";
+});
+
+const roverModel = $("roverModel");
+const roverModelFallback = $("roverModelFallback");
+
+function changeRoverOrbit(thetaDelta, phi = null) {
+  if (!roverModel.loaded) return;
+  const orbit = roverModel.getCameraOrbit();
+  const nextTheta = orbit.theta + thetaDelta;
+  const nextPhi = phi === null ? orbit.phi : phi;
+  roverModel.setAttribute(
+    "camera-orbit",
+    `${nextTheta}rad ${nextPhi}rad ${orbit.radius}m`
+  );
+}
+
+$("roverViewLeft").addEventListener("click", () => {
+  changeRoverOrbit(-Math.PI / 4);
+});
+
+$("roverViewRight").addEventListener("click", () => {
+  changeRoverOrbit(Math.PI / 4);
+});
+
+$("roverViewTop").addEventListener("click", () => {
+  changeRoverOrbit(0, 0.12);
+});
+
+$("roverViewReset").addEventListener("click", () => {
+  if (roverModel.loaded) {
+    roverModel.setAttribute("camera-orbit", "35deg 70deg 5m");
+  }
+});
+
+$("roverAutoRotate").addEventListener("click", event => {
+  const button = event.currentTarget;
+  const enabled = button.getAttribute("aria-pressed") !== "true";
+  button.setAttribute("aria-pressed", String(enabled));
+  roverModel.toggleAttribute("auto-rotate", enabled);
+});
+
+roverModel.addEventListener("error", () => {
+  roverModelFallback.classList.remove("hidden");
+});
+
+roverModel.addEventListener("load", () => {
+  roverModelFallback.classList.add("hidden");
+  roverModel.setAttribute("camera-controls", "");
+});
+
+$("retryRoverModel").addEventListener("click", () => {
+  const modelUrl = new URL(roverModel.getAttribute("src"), document.baseURI);
+  modelUrl.searchParams.set("retry", String(Date.now()));
+  roverModel.src = modelUrl.href;
+});
 
 $("resetBtn").addEventListener("click", () => {
   FILTERS.forEach(filter => {
@@ -981,7 +1575,7 @@ $("gridSearchBtn").addEventListener("click", () => {
   clearGridResults();
   $("gridSearchBtn").disabled = true;
   $("gridSearchStatus").textContent =
-    "Scanning 1,036,800 grid cells in the background…";
+    "Scanning the land tiles in the background…";
   gridWorker.postMessage({ type: "SCAN", target: gridTarget() });
 });
 
@@ -991,9 +1585,18 @@ updateSunCalculator(Number($("sunLatitude").value));
 renderFilters();
 updateMap();
 initGridSearch();
+renderAnalogCatalog();
+updateRoverCandidates([]);
+loadMarsReference();
 
 const requestedSite = new URLSearchParams(window.location.search).get("site");
 const deepLinkedSite = SITES.find(site => site.name === requestedSite);
 if (deepLinkedSite) {
+  showPage("atlasView", false);
   openSite({ ...deepLinkedSite, score: scoreSite(deepLinkedSite) });
+} else {
+  const requestedPage = location.hash.slice(1).toLowerCase();
+  const pageId = [...document.querySelectorAll(".page-view")]
+    .find(view => view.id.replace("View", "").toLowerCase() === requestedPage)?.id;
+  if (pageId) showPage(pageId, false);
 }

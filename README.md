@@ -34,58 +34,137 @@ differ from local conditions, particularly in high-relief terrain.
 ## Global grid search
 
 The global-grid search is separate from the illustrative named-site filters.
-Build `assets/earth_grid.bin` once using `python -m scripts.build_grid`. It stores four
-Float32 values per 0.25-degree cell (temperature, elevation, slope, and
-aridity) for a 720 × 1,440 grid. The browser worker scans the grid locally and
-returns the ten best matches; ocean and no-data cells are skipped. The globe
-starts without preset analog markers and places only locations returned by the
-user's scan. The named reference catalog remains optional and separate.
+It stores one six-Float32 record per valid land tile: latitude, longitude,
+temperature, elevation, slope, and aridity. Tiles are approximately 15 km in
+an equal-area EPSG:6933 grid; ocean and no-data cells are omitted. The 2025 build contains 575,482
+source-covered land tiles; the count is generated into `assets/earth_grid.json`,
+not assumed to be exactly 600,000. The input overlap currently covers latitudes
+about 82.3°S to 82.3°N; high-latitude land without WorldClim elevation is not
+included, so this is not yet a complete all-land global coverage product. The browser worker scans the bundled records locally
+and returns the ten best candidates.
 
-The local Python builder accepts GeoTIFF rasters or GDAL NetCDF subdatasets
-for mean temperature, elevation, annual precipitation, and annual potential
-evapotranspiration. It reprojects them to a common 0.25-degree grid, derives
-slope from elevation, and computes a dryness score as
+The four search features are mean annual temperature, elevation above sea
+level, regional slope, and an aridity index. Aridity is
 `10 × clamp(1 − annual precipitation / annual PET, 0, 1)`; higher values mean
-drier conditions. Source raster units, scale factors, resolution, and masks
-must be checked before processing. Regridding and derived slope are estimates,
-not validated site measurements. Use `--citation` to record each data source
-in the generated `assets/earth_grid.json` sidecar.
+drier conditions. Regridding and slope are regional screening estimates, not
+rover-scale measurements, safety certifications, or mission recommendations.
+The score is a normalized distance to user-entered values, not a probability.
+The current score divides each absolute field difference by that field's
+5th-to-95th percentile spread in the built Earth grid, averages four equally
+weighted differences, and maps the remaining similarity to 0–100. This
+normalization is data-dependent and has not been calibrated against expert
+analog rankings or rover outcomes.
 
-### Download a starter dataset
+### Build the Earth land grid
 
-The project includes a downloader/preparation script for public inputs. It
-downloads one year's TerraClimate monthly NetCDF files and WorldClim elevation,
-then writes annualized GeoTIFF inputs under the ignored `data/` directory:
+The preparation script downloads TerraClimate monthly NetCDF files plus
+WorldClim elevation and writes annualized rasters under ignored `data/`.
+The newest complete annual TerraClimate files found in the direct archive on
+2026-11-14 were 2025. The Earth Engine catalog metadata currently lists its
+TerraClimate collection through 2024, so the 2025 direct-archive files are
+identified as a later archive snapshot and are validated locally before use.
+They are not a near-real-time feed or a climate normal.
 
 ```sh
 pip install -r requirements-grid.txt
-python -m scripts.prepare_terraclimate --year 1991
+python -m scripts.prepare_terraclimate --year 2025
 ```
 
-Build the browser grid from those prepared inputs:
+The yearly means/sums are written as `temperature_2025.tif`,
+`precipitation_2025.tif`, and `pet_2025.tif`; elevation is static:
 
 ```sh
 python -m scripts.build_grid \
-  --temperature data/processed/temperature_1991.tif \
+  --temperature data/processed/temperature_2025.tif \
   --elevation data/processed/worldclim/wc2.1_2.5m_elev.tif \
-  --precipitation data/processed/precipitation_1991.tif \
-  --pet data/processed/pet_1991.tif \
-  --citation "TerraClimate (1991), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191" \
+  --precipitation data/processed/precipitation_2025.tif \
+  --pet data/processed/pet_2025.tif \
+  --period "2025 calendar year" \
+  --citation "TerraClimate (2025), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191" \
   --citation "WorldClim 2.1 elevation (2.5 arc-minute), Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html"
 ```
 
-The default 1991 build is a functional starter snapshot, **not** a
-climatological normal or a validated planetary-analog product. The
-preparation script caches raw downloads under `data/raw/`; raw and
-intermediate rasters are excluded from Git. The generated grid binary and
-metadata are deployment assets and should be retained in the project.
-The global-grid slope is calculated after downsampling elevation to 0.25°,
-so it must not be interpreted as rover-scale terrain safety. Use high-
-resolution map data for local slope inspection.
+The input download is about 450 MB and is cached under `data/raw/`; raw and
+intermediate rasters are excluded from Git. Keep the generated grid binary
+and metadata together for local or static hosting. `assets/earth_grid.json`
+records the schema, source period, units, formulas, projection, land mask,
+and citations.
+
+### Mars data and cross-planet limits
+
+The current public global terrain source identified for Mars is the
+[MGS MOLA MEGDR PDS4 bundle](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html).
+Its 4-pixel-per-degree product represents topography from MOLA observations
+made during 1997–2001. The PDS4 bundle was migrated/updated in 2026; that is
+not a new global surface survey. Mars topography is relative to a Mars areoid,
+so absolute Mars and Earth elevation values are not interchangeable. Earth
+temperature, pressure, radiation, dust, and regolith do not reproduce the
+Martian environment; they must not be described as equivalent.
+
+The shared spreadsheets include a 30-region Mars table and separate parameter
+dictionaries. The app preserves those values and provides an optional Mars
+region selector that copies only the MOLA-derived coarse slope into the Earth
+slope target; it does not treat the spreadsheet's pressure, temperature,
+geology, dust, or radiation values as Earth-equivalent scores. The sheets are
+project-provided reference material, not independently validated planetary
+measurements or a substitute for MOLA/PDS source products. Fields with no
+traceable observation, method, unit, period, and reuse rights must remain
+unscored.
+
+The source spreadsheets are preserved under `assets/source-data/`. Regenerate
+the app-ready Mars reference JSON (and refresh the small MOLA source image from
+PDS) with:
+
+```sh
+python -m scripts.prepare_mars_reference
+```
+
+The script validates the MOLA label's 720 × 1,440 shape and big-endian
+integer encoding before deriving center-pixel/latitude-band slope estimates.
+The source spreadsheet values remain intact alongside those derived fields;
+they are not silently substituted for the PDS measurements.
+
+Before commercial deployment, verify the redistribution rights of every
+source dataset and supplied 3D model, publish required attribution, and
+validate the grid and ranking against independent field/engineering data.
+This project is a research-screening prototype, not a flight, safety, or
+qualification tool.
 
 Serve the page over HTTP (for example with VS Code Live Server) rather than
 opening `index.html` as a `file://` URL. Browser workers and fetches require a
 local or hosted web origin.
+
+## Site pages and rover prototype
+
+The static site includes Home, Services, Guide, Analogs, Application, Rover
+Prototype, and Team pages. The analog catalog currently contains 12 starter
+references with illustrative profile values; it is not a vetted ranking.
+The rover page loads `assets/perseverance.glb` in the browser and lets users
+inspect a selected grid-search candidate against the available terrain or
+climate fields. Camera drag, orbit buttons and auto-spin control the model.
+The Rover Risk Management panel ranks the best overall grid match and lets
+users select another scan result for a specific analog review. It separates
+available environmental screening inputs from hardware and engineering
+factors that the grid cannot test. This is not ML; subsystem fit bars are
+screening illustrations, not qualification results or failure probabilities.
+No rover hardware tests are performed by the application. The prototype does
+not connect to rover hardware or flight software, and it does not yet provide
+image-based analog matching.
+
+The GLB was exported from the assembled Blender scene supplied for this
+project. To rebuild it, use Blender with its glTF 2.0 exporter enabled:
+
+```sh
+blender -b "/path/to/source.blend" \
+  --python scripts/export_rover.py -- \
+  --output assets/perseverance.glb
+```
+
+The exporter packs available textures and warns when it must substitute a
+neutral fallback for a missing texture. Confirm the original model's
+attribution and redistribution terms before republishing the model. The rover
+is a visual reference only; the export does not imply compatibility with a
+real rover or its software.
 
 The deployed browser search makes no data API calls. NASA POWER is suitable
 for point/site climatology, not millions of per-cell requests; NASA GIBS is

@@ -1,0 +1,24 @@
+ID,Parameter,Description / method
+T01,Mean elevation,"m relative to 1,737.4 km reference sphere"
+T02,Mean slope,degrees
+T03,Rock profile,1 = Metamorphic; 2 = Sedimentary; 3 = Igneous (original request codes; not a good lunar rock classification).
+M01,Plagioclase abundance,(Average of range of %)/100
+M02,Pyroxene abundance,(Average of range of %)/100
+M03,Olivine abundance,(Average of range of %)/100
+C01,FeO abundance,(Average of range of %)/100
+C02,TiO₂ abundance,(Average of range of %)/100
+C03,MgO abundance,(Average of range of %)/100
+C04,Al₂O₃ abundance,(Average of range of %)/100
+C05,CaO abundance,(Average of range of %)/100
+C06,SiO₂ abundance,(Average of range of %)/100
+T04,Surface roughness rank,"1 = smoothest, 5 = roughest; quintiles across these 30 LQs using mean 1° grid slope; upper cutoffs 0.80°, 1.47°, 1.75°, 1.99°, 3.09°. Relative macro-roughness proxy only."
+T05,Topmost surface material rank,1 mare basalt regolith; 2 highland/terra regolith; 3 crater ejecta/breccia; 4 basin ejecta/lineated deposits; 5 mixed/plains or unresolved. Not an ordinal quality rank.
+T06,Geologic period rank,1 = Pre-Nectarian (>3.92 Ga); 2 = Nectarian (3.92–3.85); 3 = Imbrian (3.85–3.16); 4 = Eratosthenian (3.16–0.8); 5 = Copernican (0.8 Ga–present). Value is the dominant mapped period by USGS GIS unit area; feature-age proxies are separately noted.
+T07,Surface pressure,Pa
+T08,Mean annual surface temperature,c
+T09,Thermal inertia,ordinal rank 1–3
+T10,Water/Ice,"1- water, 0-ice"
+T11,Humidity,1-
+,geological rank,
+,suitability,
+,loose regolith,

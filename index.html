@@ -17,15 +17,311 @@
       </span>
     </a>
 
-    <div class="modes">
+    <nav class="site-nav" aria-label="Main navigation">
+      <button class="nav-link active" type="button" data-page="homeView">HOME</button>
+      <button class="nav-link" type="button" data-page="servicesView">SERVICES</button>
+      <button class="nav-link" type="button" data-page="guideView">GUIDE</button>
+      <button class="nav-link" type="button" data-page="analogsView">ANALOGS</button>
+      <button class="nav-link" type="button" data-page="atlasView">APPLICATION</button>
+      <button class="nav-link prototype-link" type="button" data-page="roverView">
+        ROVER · PROTOTYPE
+      </button>
+      <button class="nav-link" type="button" data-page="teamView">TEAM</button>
+    </nav>
+
+    <div class="modes hidden">
       <button id="moonBtn" class="mode btn-mission active">☾ MOON MODE</button>
       <button id="marsBtn" class="mode btn-mission">♂ MARS MODE</button>
     </div>
 
-    <div class="status"><span></span> INTERACTIVE 3D EARTH</div>
+    <div class="status"><span></span> BROWSER-BASED · OPEN DATA</div>
   </header>
 
-  <main id="atlasView">
+  <main id="homeView" class="page-view home-view">
+    <section class="home-hero">
+      <div class="hero-copy">
+        <small class="eyebrow">EARTH ANALOG SEARCH · MOON / MARS</small>
+        <h1>Find the places on Earth<br><em>that answer space questions.</em></h1>
+        <p>
+          Describe the surface conditions you need. Otherworld Atlas searches
+          roughly 575,000 source-covered land tiles at about 15 km equal-area resolution and brings the closest
+          candidates to the globe—right in your browser.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-mission" type="button" data-page="atlasView">
+            START A SEARCH
+          </button>
+          <button class="secondary-action" type="button" data-page="guideView">
+            HOW IT WORKS
+          </button>
+        </div>
+        <div class="hero-proof">
+          <span><b>~575,000</b> source-covered land tiles</span>
+          <span><b>0</b> server-side scans</span>
+          <span><b>2</b> worlds to explore</span>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="Planet Earth visual">
+        <div class="hero-orbit orbit-one"></div>
+        <div class="hero-orbit orbit-two"></div>
+        <div class="hero-planet"><span>EARTH / FIELD ANALOGS</span></div>
+        <div class="hero-callout"><i></i> OPEN-DATA SCREENING</div>
+      </div>
+    </section>
+    <section class="home-paths">
+      <button class="path-card" type="button" data-page="atlasView">
+        <span class="path-number">01 / APPLICATION</span>
+        <strong>Search by requirements</strong>
+        <span>Set temperature, elevation, slope and aridity. Scan, rank and inspect candidate locations.</span>
+        <b>OPEN APPLICATION →</b>
+      </button>
+      <button class="path-card" type="button" data-page="roverView">
+        <span class="path-number">02 / PROTOTYPE</span>
+        <strong>Explore a rover sandbox</strong>
+        <span>Inspect the Perseverance reference model and review an illustrative subsystem gap report.</span>
+        <b>OPEN ROVER SANDBOX →</b>
+      </button>
+      <button class="path-card" type="button" data-page="analogsView">
+        <span class="path-number">03 / CATALOG</span>
+        <strong>Understand the analogs</strong>
+        <span>Explore the current reference catalog, scoring method, data sources and important limitations.</span>
+        <b>VIEW CATALOG →</b>
+      </button>
+    </section>
+    <section class="home-bottom">
+      <div>
+        <small class="eyebrow">BUILT FOR CLEAR DECISIONS</small>
+        <h2>Transparent screening—not a black box.</h2>
+        <p>Every result is tied to measurable grid values and cited source data. Candidates are starting points for field research, not a substitute for engineering qualification or artificial testing.</p>
+      </div>
+      <button class="btn-mission" type="button" data-page="servicesView">EXPLORE THE SERVICE</button>
+    </section>
+  </main>
+
+  <main id="servicesView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">WHAT OTHERWORLD ATLAS DOES</small>
+      <h1>From a mission question to an Earth field candidate.</h1>
+      <p>One lightweight, explainable workflow for exploring Earth environments as Moon and Mars analogs.</p>
+    </section>
+    <section class="service-grid">
+      <article class="feature-card"><span>01</span><h2>Requirement-led search</h2><p>Choose environmental targets and scan a land-only, approximately 15 km equal-area grid for ranked cells. Results are computed in a browser Web Worker.</p></article>
+      <article class="feature-card"><span>02</span><h2>Map-first inspection</h2><p>Review candidate coordinates on a 3D Earth and open locations in a map for further terrain inspection.</p></article>
+      <article class="feature-card"><span>03</span><h2>Rover sandbox <i>prototype</i></h2><p>Use a visual rover reference and an explicitly illustrative subsystem report to explore which stresses still require physical testing.</p></article>
+      <article class="feature-card"><span>04</span><h2>Source-aware results</h2><p>Climate, elevation, grid resolution, formulas and data limitations are shown so users can judge what a match does—and does not—mean.</p></article>
+    </section>
+    <section class="service-cta">
+      <div><small class="eyebrow">REPOSITORY</small><h2>Explore the project source</h2><p>Review the code, data-preparation workflow and documented assumptions.</p></div>
+      <a class="btn-mission link-button" href="https://github.com/chetanys/Hackathon1-private" target="_blank" rel="noopener noreferrer">OPEN GITHUB ↗</a>
+    </section>
+    <button class="btn-mission" type="button" data-page="atlasView">USE THE APPLICATION</button>
+  </main>
+
+  <main id="guideView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">QUICK START</small>
+      <h1>A simple guide to the analog search.</h1>
+      <p>You do not need a GIS background to try a search. Follow these steps, then treat the results as candidates to investigate.</p>
+    </section>
+    <section class="guide-steps">
+      <article><b>01</b><div><h2>Choose Moon or Mars</h2><p>This sets the exploration context. It does not imply Earth can reproduce the full off-world environment.</p></div></article>
+      <article><b>02</b><div><h2>Set the conditions you care about</h2><p>Adjust mean temperature, elevation, slope and aridity. These are target values for a similarity search, not hard safety constraints.</p></div></article>
+      <article><b>03</b><div><h2>Scan the land grid</h2><p>A background worker scores roughly 600,000 land tiles at approximately 15 km equal-area resolution and returns the best candidates without blocking the interface.</p></div></article>
+      <article><b>04</b><div><h2>Inspect candidate locations</h2><p>Choose a ranked result or globe marker to focus the map. A 0.25° cell is broad regional context—not a rover traversability map.</p></div></article>
+      <article><b>05</b><div><h2>Plan the missing tests</h2><p>Use the rover sandbox as a discussion aid. Confirm wheel traction, dust, thermal-vacuum, power and communications behavior with dedicated test rigs and validated data.</p></div></article>
+    </section>
+    <button class="btn-mission" type="button" data-page="atlasView">START EXPLORING</button>
+  </main>
+
+  <main id="analogsView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">CANDIDATES, NOT CERTIFICATIONS</small>
+      <h1>Earth analog catalog.</h1>
+      <p>Search results are generated from your chosen requirements. Named places below are a separate starter reference catalog and are not the source of the global grid.</p>
+    </section>
+    <div class="catalog-notice">
+      <strong>Catalog status: starter reference set</strong>
+      <p>These 12 named locations are useful examples to investigate, but their embedded profile values are illustrative. They are not yet a verified, source-normalized ranking of the “best” 20–30 sites.</p>
+    </div>
+    <div id="analogsCatalog" class="analogs-grid"></div>
+    <section class="formula-card mars-source-card">
+      <small class="eyebrow">MARS SOURCE DATA · 30 REGIONS</small>
+      <h2>Mars reference regions and MOLA terrain context</h2>
+      <p>The table preserves the project-provided regional values and adds a MOLA topography/slope estimate from a representative coordinate or latitude band. Spreadsheet values are not independently validated; only the MOLA slope target can optionally populate the Earth search, and the Earth/Mars scale and method differences remain.</p>
+      <p id="marsDataStatus" role="status" aria-live="polite">Loading Mars source data…</p>
+      <p>Spreadsheet values are project-provided; the project owner confirms redistribution rights. Scientific accuracy and original methods still require independent review.</p>
+      <div class="mars-table-wrap">
+        <table class="risk-review-table mars-reference-table">
+          <thead>
+            <tr>
+              <th scope="col">REGION</th>
+              <th scope="col">CENTER</th>
+              <th scope="col">MOLA ELEVATION ESTIMATE</th>
+              <th scope="col">MOLA SLOPE ESTIMATE</th>
+              <th scope="col">SHEET MEAN TEMP</th>
+              <th scope="col">SHEET PRESSURE</th>
+            </tr>
+          </thead>
+          <tbody id="marsReferenceRows"></tbody>
+        </table>
+      </div>
+      <a href="https://pds-geosciences.wustl.edu/missions/mgs/megdr.html" target="_blank" rel="noopener noreferrer">MOLA PDS archive and product details ↗</a>
+      <a href="https://docs.google.com/spreadsheets/d/1xwWp7ROM-iG7aUbV6ZCepV-GE52H5dx1DMxkSwaQgZ0/edit" target="_blank" rel="noopener noreferrer">Mars region source spreadsheet ↗</a>
+      <a href="https://docs.google.com/spreadsheets/d/1ghYV-n_hK3eVJARYupg1Bw61aMQOhtTAIrUHWf23mog/edit" target="_blank" rel="noopener noreferrer">Earth analog parameter definitions ↗</a>
+      <a href="https://docs.google.com/spreadsheets/d/1isKULZdfIeRs2tJ2pnld8Zt39ovk8vLZS_bUmYmyqQM/edit" target="_blank" rel="noopener noreferrer">Lunar parameter definitions ↗</a>
+      <details class="mars-definition-details">
+        <summary>View all supplied Earth and lunar parameter definitions</summary>
+        <h3>Earth analog fields</h3>
+        <div id="earthParameterDefinitions" class="mars-table-wrap"></div>
+        <h3>Lunar fields</h3>
+        <div id="lunarParameterDefinitions" class="mars-table-wrap"></div>
+      </details>
+    </section>
+    <section class="formula-card">
+      <small class="eyebrow">GRID SCORING</small>
+      <h2>How the current ranking works</h2>
+      <p>The worker computes a normalized absolute difference for temperature, elevation, slope and aridity, using each field's 5th-to-95th percentile spread in this dataset. It averages the four differences and converts the remaining similarity to a 0–100 score. All four fields have equal weight.</p>
+      <p>The score is relative to this dataset and formula. It is not a probability, hardware qualification score, or claim that a location reproduces lunar or Martian conditions.</p>
+      <a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations ↗</a>
+      <a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 ↗</a>
+    </section>
+    <button class="btn-mission" type="button" data-page="atlasView">FIND MATCHES FOR MY REQUIREMENTS</button>
+  </main>
+
+  <main id="teamView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">THE PEOPLE BEHIND THE PROTOTYPE</small>
+      <h1>Team Otherworld Atlas.</h1>
+      <p>Meet the people shaping the Otherworld Atlas experience. This is a partial roster; more team profiles will be added.</p>
+    </section>
+    <div class="catalog-notice">
+      <strong>Partial team roster</strong>
+      <p>Angel Saini is one member of the team. Additional names and roles will be added later.</p>
+    </div>
+    <section class="feature-card team-member-card" aria-label="Team member: Angel Saini">
+      <span>TEAM MEMBER · DESIGN</span>
+      <h2>Angel Saini</h2>
+      <p>Design</p>
+    </section>
+  </main>
+
+  <main id="roverView" class="page-view rover-view hidden">
+    <section class="rover-intro">
+      <div>
+        <small class="eyebrow">MARS 2020 PERSEVERANCE · VISUAL SANDBOX</small>
+        <h1>Explore the rover. Inspect the gaps.</h1>
+        <p>This downloaded rover assembly is a visual reference only. The sandbox is not connected to flight software, rover telemetry, or a validated mobility model.</p>
+      </div>
+      <span class="prototype-badge">PROTOTYPE STAGE</span>
+    </section>
+    <div class="rover-layout">
+      <section class="rover-model-panel">
+        <div class="rover-model-heading"><span>3D ROVER REFERENCE</span><small>DRAG TO ROTATE · USE VIEW CONTROLS</small></div>
+        <model-viewer id="roverModel" src="./assets/perseverance.glb"
+          alt="3D model of the Mars 2020 Perseverance rover"
+          camera-controls interaction-prompt="none" shadow-intensity="1"
+          exposure="1" camera-orbit="35deg 70deg 5m"
+          min-camera-orbit="auto auto 2m" max-camera-orbit="auto auto 15m"
+          touch-action="pan-y"
+          class="rover-model" reveal="auto">
+          <button slot="hotspot-wheel" class="rover-hotspot" data-position="-1.2m -0.5m 0.9m" data-normal="-1 0 0" data-subsystem="wheels" aria-label="Inspect mobility and wheels">WHEEL</button>
+          <button slot="hotspot-power" class="rover-hotspot" data-position="0m 0.5m -1.2m" data-normal="0 0 -1" data-subsystem="power" aria-label="Inspect rover power system">POWER</button>
+          <button slot="hotspot-comms" class="rover-hotspot" data-position="0m 2m 0m" data-normal="0 1 0" data-subsystem="comms" aria-label="Inspect communications">COMMS</button>
+        </model-viewer>
+        <div id="roverModelFallback" class="rover-model-fallback hidden" role="status" aria-live="polite">
+          <strong>3D model did not load</strong>
+          <span>Check your connection and make sure the site is being served over HTTP, then try again.</span>
+          <button id="retryRoverModel" class="secondary-action" type="button">RETRY 3D MODEL</button>
+        </div>
+        <div class="rover-camera-controls" role="group" aria-label="Rover camera controls">
+          <button type="button" id="roverViewLeft" aria-label="Rotate rover view left">←</button>
+          <button type="button" id="roverViewRight" aria-label="Rotate rover view right">→</button>
+          <button type="button" id="roverViewTop" aria-label="View rover from above">TOP</button>
+          <button type="button" id="roverViewReset">RESET VIEW</button>
+          <button type="button" id="roverAutoRotate" aria-pressed="false">AUTO SPIN</button>
+        </div>
+        <div class="rover-attribution">        Perseverance visual model · Confirm source attribution and redistribution terms before republishing.</div>
+      </section>
+      <aside class="rover-console">
+        <div class="rover-control-group">
+          <label for="roverPreset">SANDBOX CONFIGURATION</label>
+          <select id="roverPreset">
+            <option value="perseverance">Perseverance-class · reference</option>
+            <option value="lunar-scout">Lunar Scout · conceptual sandbox</option>
+          </select>
+          <p id="roverPresetNote" class="rover-preset-note">
+            Reference visual: the Perseverance assembly. The scenario preset
+            does not change this rover model or assert flight compatibility.
+          </p>
+        </div>
+        <div class="rover-control-group">
+          <label for="roverCandidate">CANDIDATE LOCATION</label>
+          <select id="roverCandidate"><option value="">Scan the grid first</option></select>
+        </div>
+        <button id="riskManagementButton" class="btn-mission risk-management-button"
+          type="button" aria-expanded="false" aria-controls="riskManagementPanel">
+          OPEN ROVER RISK MANAGEMENT
+        </button>
+        <section id="riskManagementPanel" class="risk-management-panel hidden"
+          aria-labelledby="riskManagementHeading">
+          <div class="risk-management-heading">
+            <small class="eyebrow">ENVIRONMENTAL SCREENING · NO PHYSICAL TESTS PERFORMED</small>
+            <h2 id="riskManagementHeading">Rover risk review</h2>
+            <p>This browser compares open environmental grid values with your target. It does not test hardware, estimate failure probability, or certify rover performance.</p>
+          </div>
+          <div class="risk-best-match">
+            <small class="eyebrow">BEST OVERALL GRID MATCH</small>
+            <strong id="riskBestMatch">Run a grid scan to find candidates.</strong>
+            <span id="riskBestMatchScore">No result yet</span>
+          </div>
+          <div class="rover-control-group risk-review-picker">
+            <label for="riskReviewCandidate">CHOOSE AN ANALOG FOR A SPECIFIC REVIEW</label>
+            <select id="riskReviewCandidate" disabled>
+              <option value="">Scan the grid first</option>
+            </select>
+          </div>
+          <p class="risk-review-context" id="riskReviewContext" aria-live="polite">
+            The best overall match is based on the current grid search criteria. Choose another scan candidate above to inspect that analog instead.
+          </p>
+          <div class="risk-review-table-wrap">
+            <table class="risk-review-table">
+              <thead>
+                <tr><th scope="col">ROVER SYSTEM</th><th scope="col">AVAILABLE GRID SCREENING</th><th scope="col">NOT TESTED / NOT IN DATA</th></tr>
+              </thead>
+              <tbody id="riskReviewRows"></tbody>
+            </table>
+          </div>
+          <p class="risk-review-footer">No rover hardware tests have been run by this application. Use high-resolution terrain analysis, laboratory rigs and mission-specific engineering data for validation.</p>
+        </section>
+        <div class="subsystem-tabs" role="group" aria-label="Select rover subsystem">
+          <button type="button" data-subsystem="wheels" class="active">WHEELS</button>
+          <button type="button" data-subsystem="power">POWER</button>
+          <button type="button" data-subsystem="thermal">THERMAL</button>
+          <button type="button" data-subsystem="electronics">ELECTRONICS / OPTICS</button>
+          <button type="button" data-subsystem="comms">COMMS</button>
+        </div>
+        <article class="subsystem-report">
+          <small id="subsystemLabel" class="eyebrow">MOBILITY · WHEELS</small>
+          <h2 id="subsystemTitle">Terrain screening gap</h2>
+          <div class="coverage-heading"><span>SCREENING COVERAGE</span><strong id="coverageValue">--</strong></div>
+          <div class="coverage-track"><span id="coverageBar"></span></div>
+          <dl id="subsystemMetrics" class="subsystem-metrics"></dl>
+          <p id="subsystemCaveat" class="subsystem-caveat">Run a grid search and select a candidate. The report will clearly flag fields the current dataset cannot support.</p>
+        </article>
+        <section class="test-plan">
+          <small class="eyebrow">STILL NEEDS ARTIFICIAL TESTING</small>
+          <div class="test-chips">
+            <span>REGOLITH SIMULANT BIN</span><span>DUST CHAMBER</span>
+            <span>THERMAL-VACUUM CHAMBER</span><span>SPOTLIGHT / OPTICS RIG</span>
+          </div>
+          <p>These tests are recommendations for planning, not claims that tests have already happened.</p>
+        </section>
+      </aside>
+    </div>
+    <button class="btn-mission" type="button" data-page="atlasView">BACK TO GLOBAL SEARCH</button>
+  </main>
+
+  <main id="atlasView" class="page-view hidden">
     <aside class="sidebar">
       <div class="heading">
         <div>
@@ -43,13 +339,25 @@
       <section class="grid-search" aria-labelledby="gridSearchHeading">
         <div class="section-heading">
           <span id="gridSearchHeading">SEARCH THE GLOBAL GRID</span>
-          <span class="grid-resolution">1,036,800 CELLS</span>
+          <span class="grid-resolution">LAND · ~15 KM</span>
         </div>
         <p class="hint">
-          Set your surface requirements, then scan every 0.25° grid cell.
+          Set your surface requirements, then scan approximately 15 km equal-area land cells.
           Results are discovered from the data, not selected from a preset
           analog list.
         </p>
+        <div id="marsTargetControls" class="mars-target-controls hidden">
+          <label class="mars-target-label" for="marsAnchorRegion">
+            OPTIONAL MARS TERRAIN REFERENCE
+          </label>
+          <select id="marsAnchorRegion" disabled>
+            <option value="">Loading Mars reference data…</option>
+          </select>
+          <p id="marsReferenceStatus" class="mars-reference-status" role="status"
+            aria-live="polite">
+            Mars slope is compared as regional terrain context only.
+          </p>
+        </div>
         <label class="grid-control" for="gridTemperature">
           <span>MEAN TEMPERATURE</span>
           <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
@@ -67,7 +375,7 @@
           <output id="gridSlopeValue" for="gridSlope">15°</output>
         </label>
         <input class="range" id="gridSlope" type="range"
-          min="0" max="90" step="1" value="15">
+          min="0" max="90" step="0.1" value="15">
         <label class="grid-control" for="gridAridity">
           <span>ARIDITY · 0 HUMID / 10 ARID</span>
           <output id="gridAridityValue" for="gridAridity">8 / 10</output>
@@ -87,6 +395,20 @@
         <p id="gridSourceDetails" class="grid-source">
           Grid source citations will appear here when the data loads.
         </p>
+        <details class="grid-data-links">
+          <summary>Source data files and citations</summary>
+          <ul>
+            <li><a href="http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_tmin_2025.nc" target="_blank" rel="noopener noreferrer">TerraClimate minimum temperature · 2025 NetCDF</a></li>
+            <li><a href="http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_tmax_2025.nc" target="_blank" rel="noopener noreferrer">TerraClimate maximum temperature · 2025 NetCDF</a></li>
+            <li><a href="http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_ppt_2025.nc" target="_blank" rel="noopener noreferrer">TerraClimate precipitation · 2025 NetCDF</a></li>
+            <li><a href="http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_pet_2025.nc" target="_blank" rel="noopener noreferrer">TerraClimate potential evapotranspiration · 2025 NetCDF</a></li>
+            <li><a href="https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_elev.zip" target="_blank" rel="noopener noreferrer">WorldClim 2.1 elevation · 2.5 arc-minute GeoTIFF zip</a></li>
+            <li><a href="https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg004/megt90n000cb.img" target="_blank" rel="noopener noreferrer">Mars MOLA global topography · PDS4 4-pixel/degree product</a></li>
+            <li><a href="https://pds-geosciences.wustl.edu/missions/mgs/megdr.html" target="_blank" rel="noopener noreferrer">MOLA archive, product description and resolution options</a></li>
+            <li><a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations</a></li>
+            <li><a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 dataset and citation</a></li>
+          </ul>
+        </details>
       </section>
 
       <section class="sun-calculator" aria-labelledby="sunHeading">
@@ -236,6 +558,7 @@
 
       <div id="globeFallback" class="globe-fallback hidden" role="status">
         The NASA Earth model could not be loaded.
+        <button id="retryGlobeModel" class="secondary-action" type="button">RETRY EARTH MODEL</button>
         <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
           target="_blank" rel="noopener noreferrer">
           Open the NASA 3D Earth model ↗

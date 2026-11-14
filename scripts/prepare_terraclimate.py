@@ -69,6 +69,8 @@ def prepare_temperature(tmin_path: Path, tmax_path: Path, output_path: Path) -> 
     with rasterio.open(f'NETCDF:"{tmin_path}":tmin') as tmin, rasterio.open(
         f'NETCDF:"{tmax_path}":tmax'
     ) as tmax:
+        if tmin.count != 12 or tmax.count != 12:
+            raise ValueError("TerraClimate temperature sources must contain 12 monthly bands.")
         if tmin.count != tmax.count or tmin.shape != tmax.shape:
             raise ValueError("TerraClimate min/max temperature rasters do not align.")
 
@@ -91,6 +93,11 @@ def prepare_temperature(tmin_path: Path, tmax_path: Path, output_path: Path) -> 
 
 def prepare_annual_total(source_path: Path, variable: str, output_path: Path) -> None:
     with rasterio.open(f'NETCDF:"{source_path}":{variable}') as source:
+        if source.count != 12:
+            raise ValueError(
+                f"TerraClimate {variable} source must contain 12 monthly bands; "
+                f"found {source.count}."
+            )
         total = np.zeros(source.shape, dtype=np.float32)
         count = np.zeros(source.shape, dtype=np.uint8)
         for band in range(1, source.count + 1):
@@ -126,11 +133,11 @@ def extract_elevation(archive: Path, output_directory: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--year", type=int, default=1991)
+    parser.add_argument("--year", type=int, default=2025)
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     args = parser.parse_args()
-    if not 1958 <= args.year <= 2024:
-        parser.error("TerraClimate data years must be between 1958 and 2024.")
+    if not 1958 <= args.year <= 2025:
+        parser.error("TerraClimate data years must be between 1958 and 2025.")
 
     raw_climate = args.data_dir / "raw" / "terraclimate"
     raw_worldclim = args.data_dir / "raw" / "worldclim"
@@ -160,6 +167,7 @@ def main() -> None:
     print(f"Precipitation: {precipitation_path}")
     print(f"PET:         {pet_path}")
     print("This is a single-year snapshot, not a climate normal.")
+    print("Confirm the source archive lists all 12 monthly bands before using it.")
 
 
 if __name__ == "__main__":
