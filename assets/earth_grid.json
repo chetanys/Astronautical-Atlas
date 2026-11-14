@@ -1,0 +1,40 @@
+{
+  "rows": 720,
+  "columns": 1440,
+  "cellSizeDegrees": 0.25,
+  "valueOrder": [
+    "temperature",
+    "elevation",
+    "slope",
+    "aridity"
+  ],
+  "units": [
+    "degrees Celsius",
+    "metres",
+    "degrees",
+    "dryness score / 10"
+  ],
+  "aridityFormula": "10 * clamp(1 - annual precipitation / annual PET, 0, 1)",
+  "inputBands": {
+    "temperature": {
+      "band": 1,
+      "scale": 1
+    },
+    "elevation": {
+      "band": 1,
+      "scale": 1
+    },
+    "precipitation": {
+      "band": 1,
+      "scale": 1
+    },
+    "pet": {
+      "band": 1,
+      "scale": 1
+    }
+  },
+  "citations": [
+    "TerraClimate (1991), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191",
+    "WorldClim 2.1 elevation (2.5 arc-minute), Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html"
+  ]
+}

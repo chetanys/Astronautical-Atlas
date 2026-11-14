@@ -194,7 +194,11 @@ const SITES = [
 let mode = "moon";
 let globe;
 let markers = [];
+let gridMarkers = [];
 let selectedSite = null;
+let gridWorker = null;
+let gridReady = false;
+let gridHasResults = false;
 const climateCache = new Map();
 let activeClimateKey = null;
 let climateRequestId = 0;
@@ -382,6 +386,135 @@ function globePosition(site, radius = 505) {
   };
 }
 
+function gridTarget() {
+  return {
+    temperature: Number($("gridTemperature").value),
+    elevation: Number($("gridElevation").value),
+    slope: Number($("gridSlope").value),
+    aridity: Number($("gridAridity").value)
+  };
+}
+
+function renderGridResults(results) {
+  gridMarkers.forEach(marker => marker.remove());
+  gridMarkers = [];
+  $("gridResults").replaceChildren();
+
+  results.forEach((result, index) => {
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    const marker = document.createElement("button");
+    const coordinates = `${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°`;
+
+    button.type = "button";
+    button.className = "grid-result";
+    button.textContent = [
+      `${String(index + 1).padStart(2, "0")} · ${coordinates} · ${result.score}%`,
+      `${result.temperature.toFixed(1)} °C · ${Math.round(result.elevation).toLocaleString()} m · ${result.slope.toFixed(1)}° · ${result.aridity.toFixed(1)} / 10`
+    ].join("\n");
+    button.setAttribute(
+      "aria-label",
+      `Grid match ${index + 1}: ${coordinates}, ${result.score} percent match`
+    );
+    button.addEventListener("click", () => {
+      focusSite({ lat: result.latitude, lon: result.longitude });
+      $("coordinates").textContent = `GRID CELL · ${coordinates}`;
+    });
+
+    marker.type = "button";
+    marker.className =
+      `marker global-marker ${index === 0 ? "global-best" : ""}`;
+    marker.slot = `hotspot-grid-result-${index + 1}`;
+    const position = globePosition({
+      lat: result.latitude,
+      lon: result.longitude
+    });
+    marker.dataset.position = position.position;
+    marker.dataset.normal = position.normal;
+    marker.dataset.visibilityAttribute = "visible";
+    marker.title =
+      `Grid match ${index + 1} · ${result.score}% · ` +
+      `${result.temperature.toFixed(1)} °C · ` +
+      `${Math.round(result.elevation).toLocaleString()} m · ` +
+      `${result.slope.toFixed(1)}° slope · ${result.aridity.toFixed(1)} / 10 aridity`;
+    marker.setAttribute("aria-label", marker.title);
+    marker.addEventListener("click", () => {
+      focusSite({ lat: result.latitude, lon: result.longitude });
+      $("coordinates").textContent = `GRID CELL · ${coordinates}`;
+    });
+
+    item.appendChild(button);
+    $("gridResults").appendChild(item);
+    globe.appendChild(marker);
+    gridMarkers.push(marker);
+  });
+
+  gridHasResults = results.length > 0;
+  $("gridMapHint").classList.toggle("hidden", gridHasResults);
+  $("gridMapTip").textContent = gridHasResults
+    ? "ⓘ Click a ranked result or map marker to inspect its location."
+    : "ⓘ Run a scan to place its top matches on the globe.";
+}
+
+function clearGridResults() {
+  gridMarkers.forEach(marker => marker.remove());
+  gridMarkers = [];
+  $("gridResults").replaceChildren();
+  gridHasResults = false;
+  $("gridMapHint").classList.remove("hidden");
+  $("gridMapTip").textContent =
+    "ⓘ Run a scan to place its top matches on the globe.";
+}
+
+function initGridSearch() {
+  try {
+    gridWorker = new Worker("./searchWorker.js");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    $("gridSearchStatus").textContent =
+      `Could not start the search worker: ${message}. Serve this page over HTTP.`;
+    console.error("Could not start the global grid worker.", error);
+    return;
+  }
+
+  gridWorker.addEventListener("message", event => {
+    const { type, message } = event.data;
+    if (type === "READY") {
+      gridReady = true;
+      $("gridSearchBtn").disabled = false;
+      $("gridSearchStatus").textContent =
+        `Grid ready · ${event.data.count.toLocaleString()} land cells available.`;
+      $("gridSourceDetails").textContent = event.data.citations.length
+        ? `Sources: ${event.data.citations.join(" · ")}`
+        : "Source citations were not included with this grid.";
+      return;
+    }
+
+    if (type === "RESULTS") {
+      $("gridSearchBtn").disabled = false;
+      $("gridSearchStatus").textContent =
+        `Top ${event.data.results.length} matches from ${event.data.validCellCount.toLocaleString()} valid land cells (${event.data.totalCellCount.toLocaleString()} global cells scanned).`;
+      renderGridResults(event.data.results);
+      return;
+    }
+
+    if (type === "ERROR") {
+      $("gridSearchBtn").disabled = !gridReady;
+      $("gridSearchStatus").textContent = message;
+      console.error("Global grid search failed:", message);
+    }
+  });
+
+  gridWorker.addEventListener("error", event => {
+    $("gridSearchBtn").disabled = true;
+    $("gridSearchStatus").textContent =
+      `Global grid worker failed: ${event.message}`;
+    console.error("Global grid worker failed.", event);
+  });
+
+  gridWorker.postMessage({ type: "LOAD_DATA" });
+}
+
 function initGlobe() {
   globe = $("map");
 
@@ -431,45 +564,6 @@ function updateMap() {
       site.type === "terrain" ? showTerrain : showClimate
     );
 
-  visibleSites.forEach(site => {
-    const classes = [
-      "marker",
-      markerClass(site.score),
-      mode === "mars" ? "mars" : "",
-      site.type === "climate" ? "climate" : "",
-      site.winterSunElevation <= LOW_LIGHT_THRESHOLD ? "unfaked-light" : ""
-    ].filter(Boolean).join(" ");
-
-    const marker = document.createElement("button");
-    const { position, normal } = globePosition(site);
-    marker.type = "button";
-    marker.className = classes;
-    marker.slot =
-      `hotspot-${site.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-    marker.dataset.position = position;
-    marker.dataset.normal = normal;
-    marker.dataset.visibilityAttribute = "visible";
-    const lowLightDescription =
-      site.winterSunElevation <= LOW_LIGHT_THRESHOLD
-        ? ` · UNFAKED LIGHT ZONE · winter-solstice Sun ${site.winterSunElevation.toFixed(1)}°`
-        : "";
-    marker.title = `${site.name} · ${site.score}% match${lowLightDescription}`;
-    marker.setAttribute("aria-label", marker.title);
-    marker.addEventListener("click", () => openSite(site));
-    marker.addEventListener("mouseenter", () => {
-      $("coordinates").textContent =
-        `LAT ${site.lat.toFixed(3)}° · LON ${site.lon.toFixed(3)}°`;
-    });
-    marker.addEventListener("focus", () => {
-      $("coordinates").textContent =
-        `LAT ${site.lat.toFixed(3)}° · LON ${site.lon.toFixed(3)}°`;
-    });
-
-    globe.appendChild(marker);
-
-    markers.push(marker);
-  });
-
   const strongMatches =
     visibleSites.filter(site => site.score >= 70).length;
 
@@ -482,8 +576,8 @@ function updateMap() {
       : "0%";
 
   $("matchSummary").textContent = visibleSites.length
-    ? `${strongMatches} strong matches out of ${visibleSites.length} visible sites.`
-    : "No sites visible. Turn on a map layer.";
+    ? `${strongMatches} strong matches among ${visibleSites.length} optional named reference sites.`
+    : "No reference sites selected. Use the global grid search above to discover locations.";
 
   if (selectedSite) {
     const updated = visibleSites.find(
@@ -493,9 +587,9 @@ function updateMap() {
     if (updated) {
       openSite(updated, false, false);
     } else {
-      $("siteCard").classList.add("hidden");
-      selectedSite = null;
-      $("sitePicker").value = "";
+      selectedSite = { ...selectedSite, score: scoreSite(selectedSite) };
+      $("siteScore").textContent = `${selectedSite.score}%`;
+      $("siteProgress").style.width = `${selectedSite.score}%`;
     }
   }
 }
@@ -791,13 +885,12 @@ function setMode(nextMode) {
 
   $("planetIcon").textContent = mode === "moon" ? "☾" : "♂";
 
-  $("modeDescription").textContent = mode === "moon"
-    ? "Find Earth environments with conditions similar to the Moon."
-    : "Explore Earth environments useful for comparing with Mars.";
+  $("modeDescription").textContent =
+    "Set your surface requirements, then scan Earth's global grid for matching locations.";
 
   document.documentElement.style.setProperty(
     "--accent",
-    mode === "moon" ? "#e9bd76" : "#e77b5e"
+    mode === "moon" ? "#facc15" : "#fb7185"
   );
 
   renderFilters();
@@ -866,11 +959,38 @@ $("refreshClimate").addEventListener("click", () => {
   if (selectedSite) loadClimateData(selectedSite, true);
 });
 
+[
+  ["gridTemperature", "gridTemperatureValue", value => `${value} °C`],
+  ["gridElevation", "gridElevationValue", value => `${Number(value).toLocaleString()} m`],
+  ["gridSlope", "gridSlopeValue", value => `${value}°`],
+  ["gridAridity", "gridAridityValue", value => `${value} / 10`]
+].forEach(([inputId, outputId, format]) => {
+  $(inputId).addEventListener("input", () => {
+    $(outputId).textContent = format($(inputId).value);
+    if (gridHasResults) {
+      clearGridResults();
+      $("gridSearchStatus").textContent =
+        "Requirements changed. Scan again to refresh the results.";
+    }
+  });
+});
+
+$("gridSearchBtn").addEventListener("click", () => {
+  if (!gridReady || !gridWorker) return;
+
+  clearGridResults();
+  $("gridSearchBtn").disabled = true;
+  $("gridSearchStatus").textContent =
+    "Scanning 1,036,800 grid cells in the background…";
+  gridWorker.postMessage({ type: "SCAN", target: gridTarget() });
+});
+
 initGlobe();
 renderSitePicker();
 updateSunCalculator(Number($("sunLatitude").value));
 renderFilters();
 updateMap();
+initGridSearch();
 
 const requestedSite = new URLSearchParams(window.location.search).get("site");
 const deepLinkedSite = SITES.find(site => site.name === requestedSite);

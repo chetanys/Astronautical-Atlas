@@ -18,8 +18,8 @@
     </a>
 
     <div class="modes">
-      <button id="moonBtn" class="mode active">☾ MOON MODE</button>
-      <button id="marsBtn" class="mode">♂ MARS MODE</button>
+      <button id="moonBtn" class="mode btn-mission active">☾ MOON MODE</button>
+      <button id="marsBtn" class="mode btn-mission">♂ MARS MODE</button>
     </div>
 
     <div class="status"><span></span> INTERACTIVE 3D EARTH</div>
@@ -36,8 +36,58 @@
       </div>
 
       <p id="modeDescription" class="muted">
-        Find Earth environments with conditions similar to the Moon.
+        Set your surface requirements, then scan Earth's global grid for
+        matching locations.
       </p>
+
+      <section class="grid-search" aria-labelledby="gridSearchHeading">
+        <div class="section-heading">
+          <span id="gridSearchHeading">SEARCH THE GLOBAL GRID</span>
+          <span class="grid-resolution">1,036,800 CELLS</span>
+        </div>
+        <p class="hint">
+          Set your surface requirements, then scan every 0.25° grid cell.
+          Results are discovered from the data, not selected from a preset
+          analog list.
+        </p>
+        <label class="grid-control" for="gridTemperature">
+          <span>MEAN TEMPERATURE</span>
+          <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
+        </label>
+        <input class="range" id="gridTemperature" type="range"
+          min="-80" max="50" step="1" value="-10">
+        <label class="grid-control" for="gridElevation">
+          <span>ELEVATION</span>
+          <output id="gridElevationValue" for="gridElevation">1,800 m</output>
+        </label>
+        <input class="range" id="gridElevation" type="range"
+          min="-500" max="9000" step="50" value="1800">
+        <label class="grid-control" for="gridSlope">
+          <span>SLOPE</span>
+          <output id="gridSlopeValue" for="gridSlope">15°</output>
+        </label>
+        <input class="range" id="gridSlope" type="range"
+          min="0" max="90" step="1" value="15">
+        <label class="grid-control" for="gridAridity">
+          <span>ARIDITY · 0 HUMID / 10 ARID</span>
+          <output id="gridAridityValue" for="gridAridity">8 / 10</output>
+        </label>
+        <input class="range" id="gridAridity" type="range"
+          min="0" max="10" step="1" value="8">
+        <button id="gridSearchBtn" class="btn-mission grid-search-button"
+          type="button" disabled>
+          SCAN GLOBAL GRID
+        </button>
+        <p id="gridSearchStatus" class="grid-search-status" role="status"
+          aria-live="polite">
+          Loading global grid data…
+        </p>
+        <ol id="gridResults" class="grid-results"
+          aria-label="Best matching global grid cells"></ol>
+        <p id="gridSourceDetails" class="grid-source">
+          Grid source citations will appear here when the data loads.
+        </p>
+      </section>
 
       <section class="sun-calculator" aria-labelledby="sunHeading">
         <small class="eyebrow">NO-API SOLAR CALCULATOR</small>
@@ -112,47 +162,47 @@
         <button id="resetBtn" class="link-btn">RESET</button>
       </div>
       <p class="hint">
-        Activate multiple filters to find locations matching
-        several conditions at once.
+        These filters compare only the optional curated reference catalog.
+        Use the global grid search above to discover new locations.
       </p>
 
       <div id="filters"></div>
 
-      <div class="section-heading layers-heading">MAP LAYERS</div>
+      <div class="section-heading layers-heading">CURATED REFERENCE CATALOG</div>
 
       <label class="layer">
-        <span><i class="dot terrain"></i> Terrain analogs</span>
-        <input type="checkbox" id="terrainToggle" checked>
+        <span><i class="dot terrain"></i> Match terrain reference sites</span>
+        <input type="checkbox" id="terrainToggle">
       </label>
 
       <label class="layer">
-        <span><i class="dot climate"></i> Climate reference sites</span>
-        <input type="checkbox" id="climateToggle" checked>
+        <span><i class="dot climate"></i> Match climate reference sites</span>
+        <input type="checkbox" id="climateToggle">
       </label>
 
       <div class="match-box">
         <div class="match-heading">
-          MATCHING LOCATIONS
+          OPTIONAL REFERENCE MATCHES
           <strong id="siteCount">12</strong>
         </div>
         <div class="progress"><div id="progressBar"></div></div>
-        <p id="matchSummary">Loading locations...</p>
+        <p id="matchSummary">Enable a reference catalog to compare named sites.</p>
       </div>
 
       <p class="disclaimer">
-        PROTOTYPE DATA. Environmental values and match scores are
-        illustrative and must not be treated as validated scientific
-        measurements.
+        Grid results are relative matches for your selected inputs using a
+        1991 climate snapshot and coarse terrain estimates—not verified
+        planetary analogs, rover-scale slope checks, or mission-planning data.
       </p>
     </aside>
 
     <section class="map-panel">
       <div class="map-toolbar">
         <div class="map-title">
-          <small class="eyebrow">PLANETARY ANALOG NETWORK</small>
-          <strong>EARTH / SURFACE COMPARISON</strong>
+          <small class="eyebrow">LIVE SEARCH OUTPUT</small>
+          <strong>USER-REQUESTED GRID MATCHES</strong>
           <label class="site-picker">
-            <span>OPEN A SITE</span>
+            <span>REFERENCE SITE LOOKUP</span>
             <select id="sitePicker" aria-label="Open an analog site profile">
               <option value="">Choose a site...</option>
             </select>
@@ -160,7 +210,7 @@
         </div>
 
         <div class="map-buttons">
-          <button id="showAllBtn">◎ SHOW ALL</button>
+          <button id="showAllBtn" class="btn-mission">◎ SHOW ALL</button>
           <button id="zoomOutBtn" aria-label="Zoom out">−</button>
           <button id="zoomInBtn" aria-label="Zoom in">+</button>
         </div>
@@ -171,7 +221,7 @@
         src="./assets/earth.glb"
         poster="https://solarsystem.nasa.gov/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBaThSIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--7d74b9a474270365fe6127b548c73ae030610e20/poster_earth.jpg"
         alt="NASA 3D model of Earth with clickable planetary analog sites"
-        background-color="#14212b"
+        background-color="#05070d"
         camera-controls
         camera-orbit="0deg 75deg 1500m"
         camera-target="0m 0m 0m"
@@ -192,15 +242,18 @@
         </a>
       </div>
 
+      <div id="gridMapHint" class="grid-map-hint" role="status">
+        Choose your requirements and scan the global grid to place matching
+        locations on the globe.
+      </div>
+
       <div class="coordinates" id="coordinates">
-        DRAG TO ROTATE · HOVER A SITE
+        DRAG TO ROTATE · SCAN TO PLACE MATCHES
       </div>
 
       <div class="legend">
-        <span><i class="legend-dot green"></i> Strong match</span>
-        <span><i class="legend-dot yellow"></i> Partial match</span>
-        <span><i class="legend-dot grey"></i> Low match</span>
-        <span><i class="legend-dot low-light-dot"></i> Unfaked Light zone</span>
+        <span><i class="legend-dot green"></i> Best scan match</span>
+        <span><i class="legend-dot yellow"></i> Other top-10 matches</span>
       </div>
 
       <article id="siteCard" class="site-card hidden">
@@ -216,7 +269,7 @@
 
         <p id="siteDescription" class="description"></p>
         <div id="siteMetrics" class="metrics"></div>
-        <button id="exportSite" class="export-btn" type="button">
+        <button id="exportSite" class="export-btn btn-mission" type="button">
           EXPORT SITE JSON
         </button>
 
@@ -243,7 +296,9 @@
         <p class="card-footer">ILLUSTRATIVE SITE PROFILE</p>
       </article>
 
-      <div class="map-tip">ⓘ Click a highlighted site to explore it.</div>
+      <div id="gridMapTip" class="map-tip">
+        ⓘ Run a scan to place its top matches on the globe.
+      </div>
     </section>
   </main>
 
@@ -259,7 +314,7 @@
         </p>
         <div class="lab-actions">
           <a
-            class="lab-link primary"
+            class="lab-link primary btn-mission"
             href="https://nasa-ibm-ai4science-nasa-ibm-lunar-foundation-mo-95c3215.hf.space"
             target="_blank"
             rel="noopener noreferrer"
