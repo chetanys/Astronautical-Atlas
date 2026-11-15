@@ -78,13 +78,13 @@
       <button class="path-card" type="button" data-page="roverView">
         <span class="path-number">02 / PROTOTYPE</span>
         <strong>Explore a rover sandbox</strong>
-        <span>Inspect a project-authored six-wheel rover illustration and see which environment inputs the current grid can and cannot support.</span>
+        <span>Explore the interactive 3D rover reference and see which environment inputs the current grid can and cannot support.</span>
         <b>OPEN ROVER SANDBOX →</b>
       </button>
       <button class="path-card" type="button" data-page="analogsView">
         <span class="path-number">03 / CATALOG</span>
         <strong>Understand the analogs</strong>
-        <span>View the top 20 grid candidates after a scan, with validation, sources and limitations.</span>
+        <span>View ranked candidates, source-linked reference profiles and optional regional context.</span>
         <b>VIEW CATALOG →</b>
       </button>
     </section>
@@ -128,7 +128,7 @@
       <article><b>02</b><div><h2>Set the conditions you care about</h2><p>Adjust mean temperature, elevation, slope and aridity. These are target values for a similarity search, not hard safety constraints.</p></div></article>
       <article><b>03</b><div><h2>Scan the land grid</h2><p>A background worker scores 575,482 source-covered land cells at approximately 15 km equal-area resolution and returns the 20 best candidates without blocking the interface.</p></div></article>
       <article><b>04</b><div><h2>Inspect candidate locations</h2><p>Choose a ranked result or globe marker to focus the map. A 15 km cell is broad regional context—not a rover traversability map.</p></div></article>
-      <article><b>05</b><div><h2>Plan the missing tests</h2><p>Use the rover sandbox as a discussion aid. Confirm wheel traction, dust, thermal-vacuum, power and communications behavior with dedicated test rigs and validated data.</p></div></article>
+      <article><b>05</b><div><h2>Plan engineering validation</h2><p>Use the rover sandbox as a discussion aid. Evaluate wheel traction, dust, thermal-vacuum, power and communications behavior with mission-specific analysis and dedicated test rigs.</p></div></article>
     </section>
     <button class="btn-mission" type="button" data-page="atlasView">START EXPLORING</button>
   </main>
@@ -136,73 +136,63 @@
   <main id="analogsView" class="page-view content-view hidden">
     <section class="page-heading">
       <small class="eyebrow">CANDIDATES, NOT CERTIFICATIONS</small>
-      <h1>Top 20 grid candidates.</h1>
-      <p>These are the top 20 grid candidates for your most recent search, ranked by the active measured grid fields—not a preset list of named sites.</p>
+      <h1>Grid results and researched references.</h1>
+      <p>The grid candidates are ranked from your latest four-field scan. Below them, browse named, source-linked Moon and Mars reference profiles; those profiles are not grid results and do not affect ranking.</p>
     </section>
     <div class="catalog-notice">
     <strong>Data-ranked grid candidates · not named analog sites</strong>
     <p>These are ranked cells from the current approximately 15 km equal-area Earth grid, not a preset catalog. Their rank is a screening result, not independent site validation or a mission recommendation.</p>
     </div>
     <div id="analogsCatalog" class="analogs-grid"></div>
-    <section class="formula-card">
-      <small class="eyebrow">EMPIRICAL CHECKS · APPROXIMATE COORDINATES</small>
-      <h2>Known-site validation against the current Earth grid</h2>
-      <p>These checks compare one expected feature against the 575,482-cell grid and require the nearest source-covered tile center to be within one 15 km cell width. Approximate coordinates farther away are marked TOO FAR, not counted as passes. Even a pass is a limited sanity check, not independent validation of a site or source dataset.</p>
-      <p id="knownSitesStatus" role="status" aria-live="polite">Loading validation results…</p>
-      <div class="mars-table-wrap">
-        <table class="risk-review-table">
-          <thead><tr><th scope="col">SITE</th><th scope="col">FEATURE / DIRECTION</th><th scope="col">GRID VALUE</th><th scope="col">GRID TOP PERCENT</th><th scope="col">TEST</th><th scope="col">NEAREST TILE DISTANCE</th><th scope="col">COORDINATE SOURCE</th></tr></thead>
-          <tbody id="knownSitesRows"></tbody>
-        </table>
-      </div>
-      <p id="weightSensitivityStatus"></p>
-      <a href="./assets/known_sites.csv" download>Download the known-site validation inputs ↧</a>
-      <a href="./assets/known_sites_validation.json" download>Download the full validation and weight-sensitivity report ↧</a>
+    <section class="formula-card regional-power-panel" aria-labelledby="analogRegionalHeading">
+      <small class="eyebrow">NASA POWER · OPTIONAL REGIONAL CONTEXT</small>
+      <h2 id="analogRegionalHeading">Explore regional temperature</h2>
+      <p>A 2° × 2° neighborhood T2M climatology for one candidate from the latest scan. NASA's regional API requires a bounding box and allows one parameter per request. This is not a global grid and does not change candidate ranking.</p>
+      <label class="curated-profile-label" for="analogRegionalCandidate">SCAN CANDIDATE</label>
+      <select id="analogRegionalCandidate" disabled>
+        <option value="">Run a global scan first</option>
+      </select>
+      <button id="loadRegionalPower" class="secondary-action" type="button" disabled>
+        LOAD REGIONAL TEMPERATURE
+      </button>
+      <p id="regionalPowerStatus" class="grid-climate-status" role="status" aria-live="polite">Run a scan and choose a candidate first.</p>
+      <div id="regionalPowerMetrics" class="grid-power-metrics hidden"></div>
     </section>
-    <section class="formula-card mars-source-card">
-      <small class="eyebrow">MARS SOURCE DATA · 30 REGIONS</small>
-      <h2>Mars reference regions and MOLA terrain context</h2>
-      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Temperature and elevation may be copied as raw numeric targets, but Earth and Mars datums and environments are not equivalent. The MOLA slope estimate is reference-only: its source spacing is approximately 27.8 km north-south, unlike the Earth grid's approximately 15 km equal-area cell spacing.</p>
-      <p id="marsDataStatus" role="status" aria-live="polite">Loading Mars source data…</p>
-      <p>Spreadsheet values are project-provided; the project owner confirms redistribution rights. Scientific accuracy and original methods still require independent review.</p>
-      <div class="mars-table-wrap">
-        <table class="risk-review-table mars-reference-table">
-          <thead>
-            <tr>
-              <th scope="col">REGION</th>
-              <th scope="col">CENTER</th>
-              <th scope="col">MOLA ELEVATION ESTIMATE</th>
-              <th scope="col">MOLA SLOPE ESTIMATE</th>
-              <th scope="col">SHEET MEAN TEMP</th>
-              <th scope="col">SHEET PRESSURE</th>
-            </tr>
-          </thead>
-          <tbody id="marsReferenceRows"></tbody>
-        </table>
+    <details id="curatedProfilePanel" class="formula-card curated-profile-panel">
+      <summary>CURATED MOON / MARS PROFILES · NOT SCORED</summary>
+      <p>Named extraterrestrial references from the supplied research workbooks. Browse 20 names at a time; these are source-linked references, not verified Earth analog matches and not global-scan results.</p>
+      <div class="curated-profile-browser-controls">
+        <label class="curated-profile-label" for="curatedProfileSearch">FIND A PROFILE</label>
+        <input id="curatedProfileSearch" type="search" placeholder="Search named regions…" disabled>
+        <label class="curated-profile-label" for="curatedProfileBody">BODY</label>
+        <select id="curatedProfileBody" disabled>
+          <option value="all">Moon + Mars</option>
+          <option value="Mars">Mars</option>
+          <option value="Moon">Moon</option>
+        </select>
       </div>
-      <a href="https://pds-geosciences.wustl.edu/missions/mgs/megdr.html" target="_blank" rel="noopener noreferrer">MOLA PDS archive and product details ↗</a>
-      <a href="https://docs.google.com/spreadsheets/d/1xwWp7ROM-iG7aUbV6ZCepV-GE52H5dx1DMxkSwaQgZ0/edit" target="_blank" rel="noopener noreferrer">Mars region source spreadsheet ↗</a>
-      <a href="https://docs.google.com/spreadsheets/d/1ghYV-n_hK3eVJARYupg1Bw61aMQOhtTAIrUHWf23mog/edit" target="_blank" rel="noopener noreferrer">Earth analog parameter definitions ↗</a>
-      <a href="https://docs.google.com/spreadsheets/d/1isKULZdfIeRs2tJ2pnld8Zt39ovk8vLZS_bUmYmyqQM/edit" target="_blank" rel="noopener noreferrer">Lunar parameter definitions ↗</a>
-      <details class="mars-definition-details">
-        <summary>View all supplied Earth and lunar parameter definitions</summary>
-        <p>The Earth sheet contains parameter definitions, not a measured global Earth layer for every field. The current score only includes fields marked as available in the matrix.</p>
-        <h3>Earth analog fields</h3>
-        <div id="earthParameterDefinitions" class="mars-table-wrap"></div>
-        <h3>Lunar fields</h3>
-        <div id="lunarParameterDefinitions" class="mars-table-wrap"></div>
+      <p id="curatedProfileStatus" role="status" aria-live="polite">Loading cited reference profiles…</p>
+      <div id="curatedProfileList" class="curated-profile-list" aria-label="Named researched profiles"></div>
+      <div class="curated-profile-pagination">
+        <button id="curatedProfilePrevious" class="secondary-action" type="button" disabled>← PREVIOUS 20</button>
+        <span id="curatedProfilePageStatus" aria-live="polite"></span>
+        <button id="curatedProfileNext" class="secondary-action" type="button" disabled>NEXT 20 →</button>
+      </div>
+      <article id="curatedProfileDetails" class="curated-profile-details hidden">
+        <h3 id="curatedProfileName"></h3>
+        <p id="curatedProfileSummary"></p>
+        <dl id="curatedProfileParameters" class="curated-profile-parameters"></dl>
+        <details id="curatedProfileSourcesPanel">
+          <summary>Show profile citations</summary>
+          <p id="curatedProfileSourceNote" class="curated-profile-source-note"></p>
+          <ul id="curatedProfileSources"></ul>
+        </details>
+      </article>
+      <details class="curated-profile-exclusions">
+        <summary>Why some supplied spreadsheet fields are not included</summary>
+        <ul id="curatedProfileExclusions"></ul>
       </details>
-      <details class="mars-definition-details">
-        <summary>Full Mars parameter matrix: source values, scoreability and weights</summary>
-        <p>Every source-sheet field is listed for the selected region. Temperature, elevation and MOLA slope show their current search weights; fields without comparable Earth-grid measurements remain unscored.</p>
-        <div class="mars-table-wrap">
-          <table class="risk-review-table">
-            <thead><tr><th scope="col">SOURCE PARAMETER</th><th scope="col">SPREADSHEET VALUE</th><th scope="col">CURRENT WEIGHT / STATUS</th></tr></thead>
-            <tbody id="marsSourceParameterRows"></tbody>
-          </table>
-        </div>
-      </details>
-    </section>
+    </details>
     <section class="formula-card">
       <small class="eyebrow">NASA ARTEMIS III · UPDATED CANDIDATES</small>
       <h2>Nine lunar south-pole candidate regions</h2>
@@ -212,7 +202,7 @@
         <li>Mons Mouton Plateau</li><li>Mons Mouton</li><li>Nobile Rim 1</li>
         <li>Nobile Rim 2</li><li>de Gerlache Rim 2</li><li>Slater Plain</li>
       </ol>
-      <p>Moon mode currently has no NASA lunar raster in the active search. The supplied lunar spreadsheet is a parameter dictionary, not measured regional observations.</p>
+      <p>Moon mode currently has no NASA lunar raster in the active search. The curated profile picker shows only source-linked lunar fields marked measured in the supplied workbook; these are context only, not a lunar grid.</p>
       <a href="https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/" target="_blank" rel="noopener noreferrer">NASA's 2024 candidate-region update ↗</a>
       <a href="https://pgda.gsfc.nasa.gov/products/90" target="_blank" rel="noopener noreferrer">NASA PGDA LOLA South Pole terrain product 90 ↗</a>
       <a href="https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/" target="_blank" rel="noopener noreferrer">Diviner PDS Polar Cumulative Products ↗</a>
@@ -226,7 +216,7 @@
       <a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 ↗</a>
     </section>
     <section class="formula-card" aria-labelledby="limitsSourcesHeading">
-      <small class="eyebrow">DATA PROVENANCE · NO HIDDEN COVERAGE</small>
+      <small class="eyebrow">DATA PROVENANCE · CURRENT GRID SOURCES</small>
       <h2 id="limitsSourcesHeading">Limits and sources</h2>
       <p id="gridMetadataSummary" role="status" aria-live="polite">
         Loading active grid metadata…
@@ -249,76 +239,82 @@
   </main>
 
   <main id="teamView" class="page-view content-view hidden">
-    <section class="page-heading">
-      <small class="eyebrow">THE PEOPLE BEHIND THE PROTOTYPE</small>
-      <h1>Team Otherworld Atlas.</h1>
-      <p>Project team roster.</p>
-    </section>
-    <div class="team-roster" role="list">
+    <section id="teamRoster" class="team-composition" aria-labelledby="teamRosterHeading">
+      <div class="team-hero-art">
+        <img class="team-telescope-photo" src="./assets/team-telescope-transparent.png"
+          alt="Black Celestron telescope on a tripod, supplied as the Team page reference image">
+      </div>
+      <div class="team-roster-section">
+        <header class="team-roster-heading">
+          <div>
+          <small class="eyebrow">THE PEOPLE BEHIND THE PROTOTYPE</small>
+          <h2 id="teamRosterHeading">The crew.</h2>
+          </div>
+          <span class="team-count">06 MEMBERS · ONE MISSION</span>
+        </header>
+        <div class="team-roster" role="list">
       <section class="feature-card team-member-card" role="listitem" aria-label="Chetan YS, Bengaluru, Karnataka">
         <span class="team-initials" aria-hidden="true">CY</span>
-        <div><h2>Chetan YS</h2><p>Bengaluru, Karnataka</p></div>
+        <div class="team-member-copy"><h3>Chetan YS</h3><p>Bengaluru, Karnataka</p></div>
+        <span class="team-member-mark" aria-hidden="true">01</span>
       </section>
       <section class="feature-card team-member-card" role="listitem" aria-label="Jiana Parmar, Mumbai, Maharashtra">
         <span class="team-initials" aria-hidden="true">JP</span>
-        <div><h2>Jiana Parmar</h2><p>Mumbai, Maharashtra</p></div>
+        <div class="team-member-copy"><h3>Jiana Parmar</h3><p>Mumbai, Maharashtra</p></div>
+        <span class="team-member-mark" aria-hidden="true">02</span>
       </section>
       <section class="feature-card team-member-card" role="listitem" aria-label="Rayyan Sheikh, Faridabad, Haryana">
         <span class="team-initials" aria-hidden="true">RS</span>
-        <div><h2>Rayyan Sheikh</h2><p>Faridabad, Haryana</p></div>
+        <div class="team-member-copy"><h3>Rayyan Sheikh</h3><p>Faridabad, Haryana</p></div>
+        <span class="team-member-mark" aria-hidden="true">03</span>
       </section>
       <section class="feature-card team-member-card" role="listitem" aria-label="Dhiaan Zaveri, Mumbai, Maharashtra">
         <span class="team-initials" aria-hidden="true">DZ</span>
-        <div><h2>Dhiaan Zaveri</h2><p>Mumbai, Maharashtra</p></div>
+        <div class="team-member-copy"><h3>Dhiaan Zaveri</h3><p>Mumbai, Maharashtra</p></div>
+        <span class="team-member-mark" aria-hidden="true">04</span>
       </section>
       <section class="feature-card team-member-card" role="listitem" aria-label="Vanshika Deorukhkar, Mumbai, Maharashtra">
         <span class="team-initials" aria-hidden="true">VD</span>
-        <div><h2>Vanshika Deorukhkar</h2><p>Mumbai, Maharashtra</p></div>
+        <div class="team-member-copy"><h3>Vanshika Deorukhkar</h3><p>Mumbai, Maharashtra</p></div>
+        <span class="team-member-mark" aria-hidden="true">05</span>
       </section>
       <section class="feature-card team-member-card" role="listitem" aria-label="Angel Saini, Faridabad, Haryana">
         <span class="team-initials" aria-hidden="true">AS</span>
-        <div><h2>Angel Saini</h2><p>Faridabad, Haryana</p></div>
+        <div class="team-member-copy"><h3>Angel Saini</h3><p>Faridabad, Haryana</p></div>
+        <span class="team-member-mark" aria-hidden="true">06</span>
       </section>
-    </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <main id="roverView" class="page-view rover-view hidden">
     <section class="rover-intro">
       <div>
-        <small class="eyebrow">CODE-BUILT ROVER · VISUAL SANDBOX</small>
-        <h1>Explore the rover. Inspect the gaps.</h1>
-        <p>This code-built rover is a conceptual illustration, not a Perseverance replica or validated mobility model. The sandbox is not connected to flight software or rover telemetry.</p>
+        <small class="eyebrow">MARS ROVER REFERENCE · ENVIRONMENTAL CONTEXT</small>
+        <h1>Explore rover systems. Compare sourced context.</h1>
+        <p>Compare measurable Earth-grid conditions with published Perseverance design facts. The 3D model is a visual aid; the comparisons are context, not rover qualification or a mission-performance prediction.</p>
       </div>
       <span class="prototype-badge">PROTOTYPE STAGE</span>
     </section>
     <div class="rover-layout">
       <section class="rover-model-panel">
-        <div class="rover-model-heading"><span>CODE-BUILT 3D ROVER</span><small>DRAG TO ROTATE · USE VIEW CONTROLS</small></div>
-        <canvas id="roverCanvas" class="rover-model" role="img"
-          aria-label="Conceptual code-built six-wheel rover illustration"></canvas>
-        <div id="roverModelFallback" class="rover-model-fallback" role="status" aria-live="polite">
-          <strong>3D renderer unavailable · showing schematic</strong>
-          <svg id="roverSchematic" class="rover-schematic" viewBox="0 0 520 340"
-            role="img" aria-label="Code-built schematic of a six-wheel planetary rover">
-            <g class="schematic-rover">
-              <path class="schematic-deck" d="M152 151h215l-24 75H177z"/>
-              <path class="schematic-panel" d="M116 154h36v62h-36zm252 0h36v62h-36z"/>
-              <path class="schematic-chassis" d="M190 226h150l-16 34H206z"/>
-              <path class="schematic-mast" d="M258 151V91h18v60"/>
-              <path class="schematic-head" d="M232 72h72v28h-72z"/>
-              <circle class="schematic-lens" cx="248" cy="86" r="7"/>
-              <circle class="schematic-lens" cx="279" cy="86" r="7"/>
-              <path class="schematic-antenna" d="M344 153q47-40 69 0m-48-4v-23m-17 23h35"/>
-              <path class="schematic-axle" d="M198 219 166 271m65-44-13 51m112-59 31 52m-77-44 13 51"/>
-              <g class="schematic-wheel">
-                <circle cx="158" cy="277" r="26"/><circle cx="218" cy="283" r="26"/>
-                <circle cx="379" cy="277" r="26"/><circle cx="302" cy="283" r="26"/>
-                <circle cx="137" cy="211" r="24"/><circle cx="397" cy="211" r="24"/>
-              </g>
-              <path class="schematic-ground" d="M50 311h420"/>
-              <text x="260" y="329" text-anchor="middle">CONCEPTUAL SCHEMATIC · NOT TO SCALE</text>
-            </g>
-          </svg>
+        <div class="rover-model-heading"><span>3D ROVER REFERENCE</span><small>DRAG TO ROTATE · USE VIEW CONTROLS</small></div>
+        <model-viewer id="roverModel" src="./assets/perseverance.glb"
+          alt="Interactive 3D rover assembly visual reference"
+          camera-controls interaction-prompt="none" shadow-intensity="1"
+          exposure="1" camera-orbit="35deg 70deg 5m"
+          min-camera-orbit="auto auto 2m" max-camera-orbit="auto auto 15m"
+          touch-action="pan-y"
+          class="rover-model" reveal="auto">
+          <button slot="hotspot-wheel" class="rover-hotspot" data-position="-1.2m -0.5m 0.9m" data-normal="-1 0 0" data-subsystem="wheels" aria-label="Inspect mobility and wheels">WHEEL</button>
+          <button slot="hotspot-power" class="rover-hotspot" data-position="0m 0.5m -1.2m" data-normal="0 0 -1" data-subsystem="power" aria-label="Inspect rover power system">POWER</button>
+          <button slot="hotspot-comms" class="rover-hotspot" data-position="0m 2m 0m" data-normal="0 1 0" data-subsystem="comms" aria-label="Inspect communications">COMMS</button>
+        </model-viewer>
+        <div id="roverModelFallback" class="rover-model-fallback hidden" role="status" aria-live="polite">
+          <strong>3D model did not load</strong>
+          <span>Check your connection and make sure the site is being served over HTTP, then try again.</span>
+          <button id="retryRoverModel" class="secondary-action" type="button">RETRY 3D MODEL</button>
         </div>
         <div class="rover-camera-controls" role="group" aria-label="Rover camera controls">
           <button type="button" id="roverViewLeft" aria-label="Rotate rover view left">←</button>
@@ -327,18 +323,18 @@
           <button type="button" id="roverViewReset">RESET VIEW</button>
           <button type="button" id="roverAutoRotate" aria-pressed="false">AUTO SPIN</button>
         </div>
-        <div class="rover-attribution">Project-authored procedural geometry · Three.js (MIT) · not a flight model.</div>
+        <div class="rover-attribution">Restored project visual asset · original model source/license unrecorded · verify reuse rights before redistribution.</div>
       </section>
       <aside class="rover-console">
         <div class="rover-control-group">
-          <label for="roverPreset">SANDBOX CONFIGURATION</label>
+          <label for="roverPreset">ENGINEERING REFERENCE</label>
           <select id="roverPreset">
-            <option value="perseverance">Perseverance-inspired scenario</option>
-            <option value="lunar-scout">Lunar Scout · conceptual sandbox</option>
+            <option value="perseverance">NASA Perseverance · published design facts</option>
+            <option value="lunar-scout">Lunar scout · conceptual comparison</option>
           </select>
           <p id="roverPresetNote" class="rover-preset-note">
-            The code-built rover is a conceptual illustration. Presets do not
-            assert flight compatibility or change the geometry.
+            NASA facts describe Perseverance and are independent of the displayed
+            model. The lunar option is a conceptual comparison, not a vehicle design.
           </p>
         </div>
         <div class="rover-control-group">
@@ -347,14 +343,14 @@
         </div>
         <button id="riskManagementButton" class="btn-mission risk-management-button"
           type="button" aria-expanded="false" aria-controls="riskManagementPanel">
-          OPEN ROVER RISK MANAGEMENT
+          OPEN SUBSYSTEM REFERENCE
         </button>
         <section id="riskManagementPanel" class="risk-management-panel hidden"
           aria-labelledby="riskManagementHeading">
           <div class="risk-management-heading">
-            <small class="eyebrow">ENVIRONMENTAL SCREENING · NO PHYSICAL TESTS PERFORMED</small>
-            <h2 id="riskManagementHeading">Rover risk review</h2>
-            <p>This browser compares open environmental grid values with your target. It does not test hardware, estimate failure probability, or certify rover performance.</p>
+            <small class="eyebrow">EARTH GRID VALUES + PUBLISHED MISSION FACTS</small>
+            <h2 id="riskManagementHeading">Subsystem reference</h2>
+            <p>Review candidate climate and terrain proxies beside sourced Perseverance design facts. Similarity is not a safety rating, qualification result, or prediction of rover performance.</p>
           </div>
           <div class="risk-best-match">
             <small class="eyebrow">BEST OVERALL GRID MATCH</small>
@@ -373,12 +369,12 @@
           <div class="risk-review-table-wrap">
             <table class="risk-review-table">
               <thead>
-                <tr><th scope="col">ROVER SYSTEM</th><th scope="col">GRID SCREENING / NASA MISSION REFERENCE</th><th scope="col">LIMITS / NOT MEASURED</th></tr>
+                <tr><th scope="col">SUBSYSTEM</th><th scope="col">EARTH CANDIDATE CONTEXT</th><th scope="col">NASA DESIGN REFERENCE + SCOPE</th></tr>
               </thead>
               <tbody id="riskReviewRows"></tbody>
             </table>
           </div>
-          <p class="risk-review-footer">No rover hardware tests have been run by this application. Use high-resolution terrain analysis, laboratory rigs and mission-specific engineering data for validation.</p>
+          <p class="risk-review-footer">Earth-grid proxies describe Earth locations; NASA specifications describe Perseverance on Mars. They are separate evidence sources and do not establish cross-planet hardware performance.</p>
         </section>
         <div class="subsystem-tabs" role="group" aria-label="Select rover subsystem">
           <button type="button" data-subsystem="wheels" class="active">WHEELS</button>
@@ -389,19 +385,21 @@
         </div>
         <article class="subsystem-report">
           <small id="subsystemLabel" class="eyebrow">MOBILITY · WHEELS</small>
-          <h2 id="subsystemTitle">Terrain screening gap</h2>
-          <div class="coverage-heading"><span>DIRECT INPUT COVERAGE</span><strong id="coverageValue">Loading grid metadata</strong></div>
-          <div class="coverage-track"><span id="coverageBar"></span></div>
+          <h2 id="subsystemTitle">Terrain and mobility context</h2>
+          <div class="coverage-heading"><span>REFERENCE BASIS</span><strong id="coverageValue">Earth grid + NASA mission source</strong></div>
           <dl id="subsystemMetrics" class="subsystem-metrics"></dl>
-          <p id="subsystemCaveat" class="subsystem-caveat">Run a grid search and select a candidate. The report will clearly flag fields the current dataset cannot support.</p>
+          <p id="subsystemReference" class="subsystem-caveat"></p>
+          <p id="subsystemCaveat" class="subsystem-caveat">Select a candidate to compare Earth-grid context with sourced mission design facts.</p>
+          <a id="subsystemSource" class="subsystem-source" href="https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/" target="_blank" rel="noopener noreferrer">NASA Perseverance component specifications ↗</a>
+          <a id="subsystemGridSource" class="subsystem-source hidden" href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate Earth-grid source ↗</a>
         </article>
         <section class="test-plan">
-          <small class="eyebrow">STILL NEEDS ARTIFICIAL TESTING</small>
+          <small class="eyebrow">ENGINEERING VALIDATION METHODS</small>
           <div class="test-chips">
             <span>REGOLITH SIMULANT BIN</span><span>DUST CHAMBER</span>
             <span>THERMAL-VACUUM CHAMBER</span><span>SPOTLIGHT / OPTICS RIG</span>
           </div>
-          <p>These tests are recommendations for planning, not claims that tests have already happened.</p>
+          <p>Suggested methods for validating a future mission-specific design; this web comparison does not represent completed hardware tests.</p>
         </section>
       </aside>
     </div>
@@ -433,18 +431,6 @@
           Results are discovered from the data, not selected from a preset
           analog list.
         </p>
-        <div id="marsTargetControls" class="mars-target-controls hidden">
-          <label class="mars-target-label" for="marsAnchorRegion">
-            OPTIONAL MARS TERRAIN REFERENCE
-          </label>
-          <select id="marsAnchorRegion" disabled>
-            <option value="">Loading Mars reference data…</option>
-          </select>
-          <p id="marsReferenceStatus" class="mars-reference-status" role="status"
-            aria-live="polite">
-            Mars slope is reference-only and is not copied into the scored target.
-          </p>
-        </div>
         <label class="grid-control" for="gridTemperature">
           <span id="gridTemperatureLabel">MEAN AIR TEMPERATURE</span>
           <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
@@ -484,10 +470,16 @@
             </table>
           </div>
         </details>
-        <button id="gridSearchBtn" class="btn-mission grid-search-button"
-          type="button" disabled>
-          SCAN GLOBAL GRID
-        </button>
+        <div class="grid-search-actions">
+          <button id="gridSearchBtn" class="btn-mission grid-search-button"
+            type="button" disabled>
+            SCAN GLOBAL GRID
+          </button>
+          <button id="browseCuratedProfiles" class="secondary-action profile-shortcut"
+            type="button">
+            BROWSE RESEARCHED PROFILES · 20 AT A TIME →
+          </button>
+        </div>
         <p id="gridSearchStatus" class="grid-search-status" role="status"
           aria-live="polite">
           Loading global grid data…
@@ -794,6 +786,5 @@
   <script type="module"
     src="https://unpkg.com/@google/model-viewer@1.10.1/dist/model-viewer.js"></script>
   <script src="app.js"></script>
-  <script type="module" src="rover.js"></script>
 </body>
 </html>

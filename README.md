@@ -39,6 +39,40 @@ probability, calibrated scientific model, or rover risk score. Temperature,
 elevation, slope and aridity are the only scored fields; other spreadsheet
 parameters have no corresponding global Earth measurements.
 
+## Curated Moon and Mars reference profiles
+
+The global scan ranks Earth-grid cells only. In the **Analogs** tab, the
+collapsed **Curated Moon / Mars profiles** picker lets users inspect one
+workbook-derived reference profile at a time without adding those extraterrestrial values to
+the Earth-grid target, score, or ranking. Included profile fields are read-only
+reference context; the four Earth search requirements remain independently
+editable in the scan controls. Profiles are not presented as Earth analog
+sites or as verified ground truth. The application has a separate shortcut to
+open this browser; it does not prefill the four grid targets. The analogs tab
+shows 20 named profiles per page, with search and Moon/Mars filters.
+
+The generator keeps Mars rows labeled exactly `Measured` that also have a
+row-level HTTPS citation on a recognized agency, university, DOI, or scientific
+publisher domain. Moon fields must be tagged `Measured` without estimated,
+proxy, or not-verified qualifiers; the lunar workbook cites sources at profile
+level rather than field level. These are workbook labels and source links, not
+an independent validation of the underlying claims. The UI lists exclusions
+for source-poor Earth ice/water values, lithology-derived mineral estimates,
+and non-site-specific lunar facts instead of displaying them as observations.
+
+Rebuild the JSON from the supplied source workbooks (not distributed in this
+repository) with:
+
+```sh
+python3 -m scripts.build_curated_profiles \
+  --mars-workbook /path/to/mars_terrain_master_research.xlsx \
+  --moon-workbook "/path/to/Moon_Terrain_Master.xlsx"
+```
+
+The generator requires `openpyxl`, declared in `requirements-grid.txt`. Its
+output is `assets/curated_reference_profiles.json`; no workbook values are
+added to or consumed by the global search worker.
+
 ## Live NASA POWER and MODIS context
 
 Selecting a ranked Earth grid cell requests its climatology from the public
@@ -49,6 +83,14 @@ in °C and corrected precipitation is in mm/day. A failed request is shown as
 unavailable and can be retried; no placeholder climate values are displayed.
 The top ten scan rows are enriched with the same API in batches of three.
 These POWER lookups do not alter the bundled-grid score.
+
+The optional **NASA POWER regional context** panel in the **Analogs** tab
+makes a separate regional climatology request after the user chooses a grid
+candidate and clicks its button. It samples `T2M` only over a 2° × 2° bounding box around that
+candidate. NASA POWER regional requests require bounding coordinates and one
+parameter per request; this feature is not a global regional grid, does not
+replace bundled data, and does not change ranking. A regional request failure
+is shown in the panel with a retry action.
 
 MODIS is a separate live contextual sample from the ORNL DAAC MODIS/VIIRS
 subsets service, product `MOD11A2`. Direct browser requests are blocked by
@@ -87,9 +129,9 @@ credentials in browser code or commit them.
 The analog page returns the top 20 grid cells for the last search. They are
 data-ranked candidate cells, not 20 independently verified, named analog
 sites. The shared Earth and Moon spreadsheets provide parameter definitions,
-not measured site catalogs. The rover review reports which grid fields are
-available and their proxy similarity where applicable. It does not assign
-failure probabilities or infer coverage for unmeasured engineering factors.
+not measured site catalogs. The rover review pairs source-backed Earth-grid
+conditions with published Perseverance design facts; it does not assign
+failure probabilities or infer engineering performance from climate proxies.
 
 ## Run locally
 
@@ -222,15 +264,18 @@ The supplied Mars values have not been independently validated. MOLA's coarse
 source spacing differs from the Earth grid, so its slope is reference-only and
 is not copied into a scored target.
 
-The rover visualization is now project-authored procedural Three.js geometry,
-not the unverified bundled rover mesh. It is an illustrative six-wheel rover,
-not a Perseverance replica or flight-compatible model. Three.js v0.170.0 is
-loaded from <https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js>
-under the MIT license (<https://github.com/mrdoob/three.js/blob/dev/LICENSE>).
-If the library or WebGL renderer is unavailable, the page displays the
-included project-authored SVG schematic instead. NASA Perseverance component
-facts shown in the separate engineering reference panel are linked to NASA's
-mission page and are not measurements of the illustration.
+The rover panel restores the interactive 3D model viewer from the earlier
+project version, including drag-to-orbit, zoom, preset camera controls and
+selectable wheel, power and communications hotspots. The model-viewer's global
+minimum render scale is fixed at 1 to avoid lowering model resolution during
+camera interaction; this may increase GPU workload for the rover and Earth
+models. The bundled GLB's
+original source and redistribution license are not recorded in the repository
+history; verify those rights before publishing or redistributing the asset.
+The visualization is not a validated mobility model and does not represent
+flight telemetry. NASA component facts shown in the separate engineering
+reference panel are sourced independently and are not measurements of this
+model.
 
 ## Limits and reuse
 
@@ -242,6 +287,9 @@ before engineering decisions.
 
 Before commercial deployment, confirm the applicable redistribution,
 attribution and commercial-use terms for every dataset and visual asset.
+The Team page uses the supplied telescope image, bundled locally with its white
+background removed for the starfield design. The original supplied image is
+also retained in `assets/team-telescope.png`.
 NASA data are generally openly usable subject to NASA's data policy and
 product citation requirements; confirm each product's current terms. Earth
 Engine itself requires the project to be registered for the intended use.

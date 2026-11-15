@@ -18,9 +18,14 @@ let gridHasResults = false;
 let gridScanResults = [];
 let gridScoreScales = null;
 let selectedSubsystem = "wheels";
-let marsReference = null;
+let curatedProfiles = [];
+let curatedProfilesLoad = null;
+let curatedProfilePage = 0;
+let selectedCuratedProfileId = null;
+const CURATED_PROFILES_PER_PAGE = 20;
 const climateCache = new Map();
 const powerCache = new Map();
+const regionalPowerCache = new Map();
 const modisCache = new Map();
 const MODIS_WINDOWS = [
   ["A2023001", "A2023073"],
@@ -33,6 +38,11 @@ let activeClimateKey = null;
 let climateRequestId = 0;
 
 const $ = id => document.getElementById(id);
+
+customElements.whenDefined("model-viewer").then(() => {
+  const ModelViewerElement = customElements.get("model-viewer");
+  if (ModelViewerElement) ModelViewerElement.minimumRenderScale = 1;
+});
 
 function winterSolstice(latitude) {
   const isNorthernWinter = latitude >= 0;
@@ -161,6 +171,28 @@ function renderGridPowerMetrics(data) {
   container.classList.remove("hidden");
 }
 
+function renderRegionalPowerMetrics(data) {
+  const metrics = [
+    ["REGIONAL MEAN", `${data.mean.toFixed(1)} °C`],
+    ["REGIONAL MIN", `${data.minimum.toFixed(1)} °C`],
+    ["REGIONAL MAX", `${data.maximum.toFixed(1)} °C`],
+    ["VALID GRID SAMPLES", String(data.count)]
+  ];
+  const container = $("regionalPowerMetrics");
+  container.replaceChildren();
+  metrics.forEach(([label, value]) => {
+    const item = document.createElement("div");
+    item.className = "grid-power-metric";
+    const term = document.createElement("span");
+    const description = document.createElement("b");
+    term.textContent = label;
+    description.textContent = value;
+    item.append(term, description);
+    container.appendChild(item);
+  });
+  container.classList.remove("hidden");
+}
+
 function fetchPower(lat, lon) {
   const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
   if (powerCache.has(key)) return powerCache.get(key);
@@ -203,6 +235,83 @@ function fetchPower(lat, lon) {
 
   powerCache.set(key, request);
   request.catch(() => powerCache.delete(key));
+  return request;
+}
+
+function regionalPowerBounds(latitude, longitude) {
+  const latitudeMin = Math.max(-90, Math.min(latitude - 1, 88));
+  const longitudeMin = Math.max(-180, Math.min(longitude - 1, 178));
+  return {
+    latitudeMin,
+    latitudeMax: latitudeMin + 2,
+    longitudeMin,
+    longitudeMax: longitudeMin + 2
+  };
+}
+
+function fetchPowerRegional(latitude, longitude) {
+  const key = `${latitude.toFixed(2)},${longitude.toFixed(2)}`;
+  if (regionalPowerCache.has(key)) return regionalPowerCache.get(key);
+
+  const bounds = regionalPowerBounds(latitude, longitude);
+  const url = new URL(
+    "https://power.larc.nasa.gov/api/temporal/climatology/regional"
+  );
+  url.search = new URLSearchParams({
+    "latitude-min": String(bounds.latitudeMin),
+    "latitude-max": String(bounds.latitudeMax),
+    "longitude-min": String(bounds.longitudeMin),
+    "longitude-max": String(bounds.longitudeMax),
+    parameters: "T2M",
+    community: "RE",
+    format: "JSON"
+  }).toString();
+
+  const request = fetch(url).then(async response => {
+    if (!response.ok) {
+      throw new Error(
+        `NASA POWER regional request failed with status ${response.status}.`
+      );
+    }
+    const payload = await response.json();
+    if (!Array.isArray(payload?.features)) {
+      throw new Error("NASA POWER regional response did not contain grid features.");
+    }
+    const samples = payload.features.flatMap(feature => {
+      const coordinates = feature?.geometry?.coordinates;
+      const temperature = feature?.properties?.parameter?.T2M?.ANN;
+      if (
+        !Array.isArray(coordinates) ||
+        !Number.isFinite(coordinates[0]) ||
+        !Number.isFinite(coordinates[1]) ||
+        !Number.isFinite(temperature) ||
+        temperature === -999
+      ) {
+        return [];
+      }
+      return [{
+        longitude: coordinates[0],
+        latitude: coordinates[1],
+        temperature
+      }];
+    });
+    if (!samples.length) {
+      throw new Error("NASA POWER regional response contained no valid T2M samples.");
+    }
+    const temperatures = samples.map(sample => sample.temperature);
+    return {
+      ...bounds,
+      count: samples.length,
+      minimum: Math.min(...temperatures),
+      mean: temperatures.reduce((sum, value) => sum + value, 0) / samples.length,
+      maximum: Math.max(...temperatures),
+      period: payload?.header?.range ?? "NASA POWER climatology",
+      fetched: new Date().toISOString()
+    };
+  });
+
+  regionalPowerCache.set(key, request);
+  request.catch(() => regionalPowerCache.delete(key));
   return request;
 }
 
@@ -375,8 +484,61 @@ async function updateGridPower(result, element, selected = false) {
   }
 }
 
+async function loadRegionalPowerContext() {
+  const candidateSelect = $("analogRegionalCandidate");
+  const result = gridScanResults[Number(candidateSelect.value)];
+  if (!result) {
+    $("regionalPowerStatus").textContent =
+      "Choose a candidate from the latest scan before loading regional context.";
+    return;
+  }
+  selectedGridResult = result;
+  const cellId = gridCellId(result);
+  const button = $("loadRegionalPower");
+  candidateSelect.disabled = true;
+  button.disabled = true;
+  button.textContent = "LOADING REGIONAL TEMPERATURE…";
+  $("regionalPowerStatus").textContent =
+    "Requesting one NASA POWER T2M regional climatology for the selected cell's 2° × 2° neighborhood…";
+  $("regionalPowerMetrics").classList.add("hidden");
+
+  try {
+    const data = await fetchPowerRegional(result.latitude, result.longitude);
+    if (!selectedGridResult || gridCellId(selectedGridResult) !== cellId) return;
+    $("regionalPowerStatus").textContent =
+      `NASA POWER regional T2M · ${data.count} valid grid samples · ` +
+      `${data.latitudeMin.toFixed(1)}° to ${data.latitudeMax.toFixed(1)} latitude, ` +
+      `${data.longitudeMin.toFixed(1)}° to ${data.longitudeMax.toFixed(1)} longitude · ` +
+      `${data.period} · fetched ${new Date(data.fetched).toLocaleString()}. ` +
+      "Neighborhood context only; it does not change the global scan.";
+    renderRegionalPowerMetrics(data);
+    button.textContent = "REFRESH REGIONAL TEMPERATURE";
+  } catch (error) {
+    if (!selectedGridResult || gridCellId(selectedGridResult) !== cellId) return;
+    const message = error instanceof Error ? error.message : String(error);
+    $("regionalPowerStatus").textContent =
+      `NASA POWER regional context unavailable: ${message}`;
+    button.textContent = "RETRY REGIONAL TEMPERATURE";
+    console.error("Could not load NASA POWER regional context.", error);
+  } finally {
+    candidateSelect.disabled = gridScanResults.length === 0;
+    button.disabled = gridScanResults.length === 0 || !candidateSelect.value;
+  }
+}
+
 function selectGridResult(result) {
   selectedGridResult = result;
+  const regionalSelect = $("analogRegionalCandidate");
+  const resultIndex = gridScanResults.findIndex(
+    candidate => gridCellId(candidate) === gridCellId(result)
+  );
+  if (resultIndex >= 0) regionalSelect.value = String(resultIndex);
+  $("loadRegionalPower").disabled = resultIndex < 0;
+  $("regionalPowerStatus").textContent =
+    "Select LOAD REGIONAL TEMPERATURE to fetch the optional 2° neighborhood context.";
+  $("regionalPowerMetrics").replaceChildren();
+  $("regionalPowerMetrics").classList.add("hidden");
+  $("loadRegionalPower").textContent = "LOAD REGIONAL TEMPERATURE";
   focusSite({ lat: result.latitude, lon: result.longitude });
   const coordinates =
     `${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°`;
@@ -544,6 +706,16 @@ function clearGridResults() {
   $("gridModisMetrics").replaceChildren();
   $("gridModisMetrics").classList.add("hidden");
   $("retryGridModis").classList.add("hidden");
+  $("loadRegionalPower").disabled = true;
+  $("analogRegionalCandidate").replaceChildren(
+    new Option("Run a global scan first", "")
+  );
+  $("analogRegionalCandidate").disabled = true;
+  $("regionalPowerStatus").textContent =
+    "Run a scan and choose a candidate first.";
+  $("regionalPowerMetrics").replaceChildren();
+  $("regionalPowerMetrics").classList.add("hidden");
+  $("loadRegionalPower").textContent = "LOAD REGIONAL TEMPERATURE";
   $("loadTopTenModis").disabled = true;
   $("topTenModisStatus").textContent =
     "Top-ten MODIS requests are opt-in: four requests per cell, processed one cell at a time; each request may take up to 90 seconds.";
@@ -557,49 +729,53 @@ function clearGridResults() {
 const SUBSYSTEMS = {
   wheels: {
     label: "MOBILITY · WHEELS",
-    title: "Terrain slope comparison",
+    title: "Terrain and mobility context",
     field: "slope",
-    targetLabel: "TARGET SLOPE",
-    valueLabel: "GRID-CELL SLOPE",
-    requiredInputs: ["slope", "obstacle geometry", "regolith traction"],
-    coveredFields: ["slope"],
-    caveat: "Coarse global-grid slope only. This does not measure wheel traction, rock hazards, bearing loads or rover traversability. Confirm using high-resolution terrain data and a regolith simulant bin."
+    valueLabel: "EARTH GRID SLOPE",
+    reference: "Perseverance reference: six individually driven 52.5 cm aluminum wheels, four steering motors, and rocker-bogie suspension. NASA describes a 30° terrain-avoidance operational guideline; that is a mission-specific driving guideline, not an Earth-site threshold.",
+    caveat: "The candidate value is regional Earth-grid slope. It gives terrain context, not wheel traction, rock clearance, suspension load, or a safe-traverse decision.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   power: {
     label: "ENERGY · POWER",
-    title: "Aridity context only",
+    title: "Energy and power context",
     field: "aridity",
-    targetLabel: "TARGET ARIDITY",
-    valueLabel: "GRID-CELL ARIDITY",
-    requiredInputs: ["incident solar flux", "dust deposition", "power margin"],
-    coveredFields: [],
-    caveat: "Aridity is not solar irradiance or rover power availability. The current grid cannot score power generation, dust accumulation, battery state or energy margin. Direct solar and dust data are not available."
+    compareTarget: false,
+    valueLabel: "EARTH GRID ARIDITY PROXY",
+    reference: "NASA reports Perseverance uses less than 200 W while driving at top speed on flat, hard ground. That operating figure is not a power-system rating or an Earth-site power budget.",
+    caveat: "The candidate's aridity value is a TerraClimate water-balance dryness proxy. It is not solar irradiance, dust deposition, battery state, or rover power availability.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   thermal: {
     label: "ENVIRONMENT · THERMAL",
-    title: "Mean temperature comparison",
+    title: "Climate and thermal context",
     field: "temperature",
-    targetLabel: "TARGET MEAN TEMP",
-    valueLabel: "GRID-CELL MEAN TEMP",
-    requiredInputs: ["temperature extremes", "thermal cycling", "hardware limits"],
-    coveredFields: [],
-    caveat: "Annual mean temperature is a broad climate proxy. It does not represent surface extremes, thermal cycling, vacuum, internal hardware temperatures or qualification limits."
+    valueLabel: "EARTH GRID MEAN TEMP",
+    reference: "NASA describes Perseverance's warm electronics box as temperature-controlled; rover health monitoring checks and adjusts internal temperatures.",
+    caveat: "The candidate value is TerraClimate annual mean Earth air temperature for 2025. It is climate context, not Mars surface temperature, rover internal temperature, thermal cycling, or a component operating limit.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   electronics: {
     label: "AVIONICS · ELECTRONICS / OPTICS",
-    title: "NASA avionics reference · no location score",
-    unavailable: true,
-    requiredInputs: ["radiation", "dust optical depth", "illumination"],
-    coveredFields: [],
-    caveat: "NASA's Perseverance computer specifications describe one rover architecture, not radiation dose at an Earth candidate or a component qualification limit. The current grid has no radiation, dust optical depth, illumination geometry or optical contamination measurements; do not infer electronics safety from analog similarity."
+    title: "Avionics and optical context",
+    field: "temperature",
+    compareTarget: false,
+    valueLabel: "EARTH GRID MEAN TEMP",
+    reference: "NASA lists two identical Rover Compute Elements and a radiation-hardened BAE RAD750 processor rated up to 200 MHz, with 2 GB flash, 256 MB RAM, and 256 KB EEPROM.",
+    caveat: "The grid temperature is an Earth climate proxy, not electronics temperature or radiation dose. The listed processor and memory are Perseverance design facts, not candidate-site measurements or a qualification assessment.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   comms: {
     label: "LINK · COMMUNICATIONS",
-    title: "NASA communications reference · no link score",
-    unavailable: true,
-    requiredInputs: ["line of sight", "link budget", "relay schedule"],
-    coveredFields: [],
-    caveat: "NASA describes Perseverance communication sessions with Earth and local Mars orbiters. The grid has no antenna patterns, link budgets, relay ephemerides, terrain obstruction, contact schedule or data-rate measurements; it cannot estimate communication availability."
+    title: "Communications architecture context",
+    reference: "NASA describes Perseverance as scheduling communication sessions with Earth and local Mars orbiters, returning engineering, housekeeping, science telemetry, and event reports.",
+    caveat: "A candidate coordinate is geographic context only. Earth-grid similarity does not represent a Mars relay link, antenna performance, contact schedule, or communications availability.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   }
 };
 
@@ -608,48 +784,60 @@ const RISK_REVIEW_SYSTEMS = [
     name: "Wheels / mobility",
     screen: (candidate, target) => candidate
       ? `Grid slope ${candidate.slope.toFixed(1)}°; target ${target.slope.toFixed(1)}° (gap ${Math.abs(candidate.slope - target.slope).toFixed(1)}°).`
-      : "Slope comparison requires a scan result.",
-    notTested: "Traction, slip, sinkage, wheel loads, rock strikes and traverse safety."
+      : "Scan to compare candidate grid slope with the selected target.",
+    notTested: "Perseverance reference: six 52.5 cm aluminum wheels, rocker-bogie suspension, four steering motors. Earth-grid slope is regional context—not traction or traverse safety.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   {
     name: "Chassis / suspension",
     screen: candidate => candidate
       ? `Regional elevation ${candidate.elevation.toFixed(0)} m and grid slope ${candidate.slope.toFixed(1)}° (context only).`
-      : "Elevation and slope context requires a scan result.",
+      : "Scan to show the candidate's regional elevation and grid slope.",
     notTested: "Chassis stress, clearance, tipping margin, obstacle geometry and suspension loading."
   },
   {
     name: "Power / energy",
     screen: candidate => candidate
-      ? `Aridity ${candidate.aridity.toFixed(1)}/10 is available as a dryness proxy only.`
-      : "Aridity proxy requires a scan result.",
-    notTested: "Solar/RTG output, battery state, mission energy margin and dust effects."
+      ? `Earth-grid water-balance dryness proxy: ${candidate.aridity.toFixed(1)}/10.`
+      : "Scan to show the candidate's Earth-grid dryness proxy.",
+    notTested: "NASA reports less than 200 W while Perseverance drives at top speed on flat, hard ground. This operating figure and Earth aridity proxy do not define site power availability.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   {
     name: "Thermal",
     screen: candidate => candidate
       ? `Grid mean temperature ${candidate.temperature.toFixed(1)} °C (broad climate context).`
-      : "Mean-temperature comparison requires a scan result.",
-    notTested: "Temperature extremes, thermal cycling, vacuum behavior and component limits."
+      : "Scan to show the candidate's TerraClimate annual mean air temperature.",
+    notTested: "NASA describes a temperature-controlled warm electronics box. TerraClimate annual mean Earth air temperature is not a Mars surface or rover internal temperature.",
+    sourceLabel: "NASA Perseverance rover components",
+    sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   {
     name: "Electronics / optics",
-    screen: () => "Perseverance reference: dual Rover Compute Elements; BAE RAD750 up to 200 MHz; 2 GB flash, 256 MB RAM and 256 KB EEPROM. Architecture only—not an Earth-site measurement.",
-    notTested: "Site radiation dose/particle spectrum, dust deposition, optical contamination, thermal-vacuum conditions and part-specific qualification margins.",
+    screen: candidate => candidate
+      ? `Earth candidate annual mean air temperature: ${candidate.temperature.toFixed(1)} °C (climate context).`
+      : "Scan to show candidate climate context.",
+    notTested: "NASA lists two identical Perseverance Rover Compute Elements, a BAE RAD750 processor up to 200 MHz, 2 GB flash, 256 MB RAM and 256 KB EEPROM. These architecture specifications do not describe site radiation or qualify hardware for a candidate.",
     sourceLabel: "NASA Perseverance rover components",
     sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   {
     name: "Communications",
-    screen: () => "Perseverance schedules communication sessions with Earth or local Mars orbiters and returns engineering, housekeeping, science telemetry and event reports. Mission architecture only—not a link prediction.",
-    notTested: "Antenna pattern, link budget, relay ephemerides/availability, terrain blockage, contact schedule and data rate.",
+    screen: candidate => candidate
+      ? `Selected Earth candidate: ${candidate.latitude.toFixed(2)}°, ${candidate.longitude.toFixed(2)}° (location context only).`
+      : "Scan to show candidate coordinates as geographic context.",
+    notTested: "NASA describes Perseverance communication sessions with Earth and local Mars orbiters, including return of engineering and science data. This architecture is not a link prediction for an Earth candidate.",
     sourceLabel: "NASA Perseverance rover components",
     sourceUrl: "https://science.nasa.gov/mission/mars-2020-perseverance/rover-components/"
   },
   {
     name: "Planetary materials / environment",
-    screen: () => "The supplied Moon/Earth dictionaries describe fields; they do not contain measurement rasters for the global scan.",
-    notTested: "Mineral and oxide fractions, dust/regolith, ice/water, thermal inertia, pressure, wind, radiation and geological activity."
+    screen: candidate => candidate
+      ? `Earth grid candidate: ${candidate.latitude.toFixed(2)}°, ${candidate.longitude.toFixed(2)}°; elevation ${candidate.elevation.toFixed(0)} m, slope ${candidate.slope.toFixed(1)}°, temperature ${candidate.temperature.toFixed(1)} °C, aridity ${candidate.aridity.toFixed(1)}/10.`
+      : "Scan to show the candidate's four source-backed Earth-grid fields.",
+    notTested: "These four Earth fields do not describe lunar or Martian mineralogy, regolith, ice, pressure, radiation, or geological activity."
   }
 ];
 
@@ -745,25 +933,44 @@ function renderSubsystemReport() {
   const target = gridTarget();
   $("subsystemLabel").textContent = subsystem.label;
   $("subsystemTitle").textContent = subsystem.title;
-
-  const coveredFields = subsystem.coveredFields.filter(
-    field => Number.isFinite(gridScoreScales?.[field])
-  );
-  const coverage = Math.round(
-    100 * coveredFields.length / subsystem.requiredInputs.length
-  );
-  const category = coverage === 100 ? "good" : coverage > 0 ? "partial" : "unavailable";
   $("coverageValue").textContent =
-    `${coveredFields.length}/${subsystem.requiredInputs.length} INPUTS · ${coverage}%`;
-  $("coverageBar").style.width = `${coverage}%`;
-  $("coverageBar").className = category;
-  const metrics = [
-    ["DIRECT INPUTS PRESENT", coveredFields.join(", ") || "None"],
-    ["DIRECT INPUTS MISSING", subsystem.requiredInputs.length - coveredFields.length],
-    ["CANDIDATE", candidate
+    candidate
+      ? "Earth candidate + NASA design reference"
+      : "NASA design reference · scan for Earth candidate";
+  $("subsystemReference").textContent = subsystem.reference;
+  $("subsystemCaveat").textContent = subsystem.caveat;
+  const missionSource = $("subsystemSource");
+  missionSource.href = subsystem.sourceUrl;
+  missionSource.textContent = `${subsystem.sourceLabel} ↗`;
+
+  const gridSource = $("subsystemGridSource");
+  const gridSources = {
+    temperature: {
+      label: "TerraClimate 2025 air-temperature source ↗",
+      url: "https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE"
+    },
+    aridity: {
+      label: "TerraClimate 2025 precipitation / PET source ↗",
+      url: "https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE"
+    },
+    slope: {
+      label: "WorldClim 2.1 elevation source used for slope ↗",
+      url: "https://www.worldclim.org/data/worldclim21.html"
+    }
+  };
+  const gridCitation = gridSources[subsystem.field];
+  gridSource.classList.toggle("hidden", !gridCitation);
+  if (gridCitation) {
+    gridSource.href = gridCitation.url;
+    gridSource.textContent = gridCitation.label;
+  }
+
+  const metrics = [[
+    "GRID CANDIDATE",
+    candidate
       ? `${candidate.latitude.toFixed(2)}°, ${candidate.longitude.toFixed(2)}°`
-      : "Scan required for site-specific context"]
-  ];
+      : "Run a scan to add Earth-grid context"
+  ]];
   if (subsystem.field && gridScoreScales?.[subsystem.field]) {
     const field = subsystem.field;
     const display = field === "temperature"
@@ -773,17 +980,18 @@ function renderSubsystemReport() {
         : field === "slope"
           ? value => `${value.toFixed(1)}°`
           : value => `${value.toFixed(1)} / 10`;
-    metrics.push(["AVAILABLE GRID PROXY", field]);
-    metrics.push(["TARGET", display(target[field])]);
+    metrics.push(["EARTH GRID FIELD", field]);
     if (candidate) {
-      const gap = Math.abs(target[field] - candidate[field]);
-      const normalizedGap = gap / gridScoreScales[field];
       metrics.push([subsystem.valueLabel, display(candidate[field])]);
-      metrics.push(["PROXY SIMILARITY · NOT RISK", `${Math.round(100 / (1 + normalizedGap))}%`]);
+      if (subsystem.compareTarget !== false) {
+        metrics.push(["SEARCH TARGET", display(target[field])]);
+        const gap = Math.abs(target[field] - candidate[field]);
+        const normalizedGap = gap / gridScoreScales[field];
+        metrics.push(["RELATIVE GRID SIMILARITY · NOT RISK", `${Math.round(100 / (1 + normalizedGap))}%`]);
+      }
     }
   }
   showSubsystemMetrics(metrics);
-  $("subsystemCaveat").textContent = subsystem.caveat;
 }
 
 function renderRiskReview() {
@@ -818,8 +1026,8 @@ function renderRiskReview() {
     name.textContent = system.name;
     const screen = document.createElement("td");
     screen.textContent = system.screen(candidate, target);
-    const notTested = document.createElement("td");
-    notTested.textContent = system.notTested;
+    const interpretation = document.createElement("td");
+    interpretation.textContent = system.notTested;
     if (system.sourceUrl) {
       const citation = document.createElement("a");
       citation.href = system.sourceUrl;
@@ -828,9 +1036,9 @@ function renderRiskReview() {
       citation.textContent = system.sourceLabel;
       const citationCell = document.createElement("span");
       citationCell.append(document.createElement("br"), citation);
-      screen.appendChild(citationCell);
+      interpretation.appendChild(citationCell);
     }
-    row.append(name, screen, notTested);
+    row.append(name, screen, interpretation);
     rows.appendChild(row);
   });
 }
@@ -839,6 +1047,33 @@ function renderAnalogCatalog() {
   const container = $("analogsCatalog");
   if (!container) return;
   container.replaceChildren();
+
+  const regionalSelect = $("analogRegionalCandidate");
+  regionalSelect.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = gridScanResults.length
+    ? "Choose a ranked candidate"
+    : "Run a global scan first";
+  regionalSelect.appendChild(placeholder);
+  gridScanResults.forEach((result, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent =
+      `#${String(index + 1).padStart(2, "0")} · ` +
+      `${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°`;
+    regionalSelect.appendChild(option);
+  });
+  const selectedIndex = selectedGridResult
+    ? gridScanResults.findIndex(
+      result => gridCellId(result) === gridCellId(selectedGridResult)
+    )
+    : -1;
+  if (selectedIndex >= 0) {
+    regionalSelect.value = String(selectedIndex);
+  }
+  regionalSelect.disabled = gridScanResults.length === 0;
+  $("loadRegionalPower").disabled = selectedIndex < 0;
 
   if (!gridScanResults.length) {
     const card = document.createElement("article");
@@ -868,6 +1103,8 @@ function renderAnalogCatalog() {
     action.type = "button";
     action.textContent = "INSPECT ON GLOBE →";
     action.addEventListener("click", () => {
+      regionalSelect.value = String(index);
+      regionalSelect.dispatchEvent(new Event("change"));
       showPage("atlasView");
       focusSite({ lat: result.latitude, lon: result.longitude });
       $("coordinates").textContent =
@@ -876,6 +1113,201 @@ function renderAnalogCatalog() {
     card.append(eyebrow, heading, environment, description, action);
     container.appendChild(card);
   });
+}
+
+function appendCuratedParameters(container, parameters) {
+  const list = document.createElement("dl");
+  list.className = "curated-profile-parameters";
+  parameters.forEach(parameter => {
+    const term = document.createElement("dt");
+    const value = document.createElement("dd");
+    term.textContent = parameter.name;
+    value.textContent = parameter.value;
+    if (parameter.sourceUrl) {
+      const source = document.createElement("a");
+      source.href = parameter.sourceUrl;
+      source.target = "_blank";
+      source.rel = "noopener noreferrer";
+      source.textContent = parameter.sourceTitle || "Open cited source";
+      value.append(document.createElement("br"), source);
+    }
+    list.append(term, value);
+  });
+  container.appendChild(list);
+}
+
+function renderCuratedProfile(profile) {
+  const article = $("curatedProfileDetails");
+  article.replaceChildren();
+  if (!profile) {
+    selectedCuratedProfileId = null;
+    article.classList.add("hidden");
+    return;
+  }
+  selectedCuratedProfileId = profile.id;
+
+  const heading = document.createElement("h3");
+  heading.textContent = `${profile.body} · ${profile.name}`;
+  const summary = document.createElement("p");
+  const sourceScope = profile.body === "Moon"
+    ? "Profile-level citations are provided by the workbook; fields are not individually cited."
+    : "Each included field has a row-level source link.";
+  summary.textContent =
+    `${profile.terrainTypes.join(" · ")} · ` +
+    `${profile.parameters.length} workbook-labeled measured reference fields. ` +
+    `${sourceScope} Selecting it does not change the scan or its parameters.`;
+  article.append(heading, summary);
+
+  const firstParameters = profile.parameters.slice(0, 5);
+  appendCuratedParameters(article, firstParameters);
+  if (profile.parameters.length > firstParameters.length) {
+    const more = document.createElement("details");
+    const moreSummary = document.createElement("summary");
+    moreSummary.textContent =
+      `Show ${profile.parameters.length - firstParameters.length} more cited fields`;
+    more.appendChild(moreSummary);
+    appendCuratedParameters(more, profile.parameters.slice(firstParameters.length));
+    article.appendChild(more);
+  }
+
+  const sourcesPanel = document.createElement("details");
+  sourcesPanel.id = "curatedProfileSourcesPanel";
+  const sourcesSummary = document.createElement("summary");
+  sourcesSummary.textContent = `Show ${profile.sources.length} profile citations`;
+  const sourceNote = document.createElement("p");
+  sourceNote.className = "curated-profile-source-note";
+  sourceNote.textContent = profile.sourceNote ??
+    "Sources are retained from the workbook and have not been independently revalidated.";
+  const sources = document.createElement("ul");
+  profile.sources.forEach(item => {
+    const listItem = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = item.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = item.title || item.url;
+    listItem.appendChild(link);
+    sources.appendChild(listItem);
+  });
+  sourcesPanel.append(sourcesSummary, sourceNote, sources);
+  article.appendChild(sourcesPanel);
+  article.classList.remove("hidden");
+}
+
+function renderCuratedProfileList() {
+  const search = $("curatedProfileSearch").value.trim().toLocaleLowerCase();
+  const body = $("curatedProfileBody").value;
+  const filtered = curatedProfiles.filter(profile =>
+    (body === "all" || profile.body === body) &&
+    `${profile.name} ${profile.terrainTypes.join(" ")}`.toLocaleLowerCase().includes(search)
+  );
+  const pageCount = Math.max(
+    1,
+    Math.ceil(filtered.length / CURATED_PROFILES_PER_PAGE)
+  );
+  curatedProfilePage = Math.min(curatedProfilePage, pageCount - 1);
+  const start = curatedProfilePage * CURATED_PROFILES_PER_PAGE;
+  const pageProfiles = filtered.slice(start, start + CURATED_PROFILES_PER_PAGE);
+  const list = $("curatedProfileList");
+  list.replaceChildren();
+
+  pageProfiles.forEach(profile => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "curated-profile-choice";
+    button.classList.toggle("active", profile.id === selectedCuratedProfileId);
+    button.textContent = profile.name;
+    button.setAttribute("aria-pressed", String(
+      profile.id === selectedCuratedProfileId
+    ));
+    button.addEventListener("click", () => {
+      renderCuratedProfile(profile);
+      renderCuratedProfileList();
+    });
+    list.appendChild(button);
+  });
+
+  $("curatedProfilePageStatus").textContent = filtered.length
+    ? `${start + 1}–${Math.min(start + pageProfiles.length, filtered.length)} of ${filtered.length}`
+    : "No matching profiles";
+  $("curatedProfilePrevious").disabled = curatedProfilePage === 0;
+  $("curatedProfileNext").disabled = curatedProfilePage >= pageCount - 1;
+  $("curatedProfileStatus").textContent =
+    `${curatedProfiles.length} named reference profiles · 20 shown per page. ` +
+    "Workbook labels and citations have not been independently revalidated.";
+}
+
+async function loadCuratedProfiles() {
+  if (curatedProfilesLoad) return curatedProfilesLoad;
+  const status = $("curatedProfileStatus");
+  curatedProfilesLoad = (async () => {
+    try {
+      const response = await fetch("./assets/curated_reference_profiles.json");
+      if (!response.ok) {
+        throw new Error(
+          `Curated profile data request failed (HTTP ${response.status}).`
+        );
+      }
+      const data = await response.json();
+      if (
+        data?.schemaVersion !== 1 ||
+        !Array.isArray(data.profiles) ||
+        data.profiles.length === 0 ||
+        !data.profiles.every(profile =>
+          typeof profile.id === "string" &&
+          typeof profile.name === "string" &&
+          ["Moon", "Mars"].includes(profile.body) &&
+          Array.isArray(profile.terrainTypes) &&
+          Array.isArray(profile.parameters) &&
+          profile.parameters.every(parameter =>
+            typeof parameter.name === "string" &&
+            typeof parameter.value === "string"
+          ) &&
+          Array.isArray(profile.sources) &&
+          profile.sources.every(source =>
+            typeof source.title === "string" &&
+            typeof source.url === "string" &&
+            source.url.startsWith("https://")
+          )
+        )
+      ) {
+        throw new Error("Curated profile data has an unsupported or empty format.");
+      }
+      curatedProfiles = data.profiles;
+      $("curatedProfileSearch").disabled = false;
+      $("curatedProfileBody").disabled = false;
+      const counts = curatedProfiles.reduce((result, profile) => {
+        result[profile.body] = (result[profile.body] || 0) + 1;
+        return result;
+      }, {});
+      status.textContent =
+        `${curatedProfiles.length} named profiles loaded ` +
+        `(${counts.Mars || 0} Mars, ${counts.Moon || 0} Moon).`;
+      renderCuratedProfileList();
+
+      const excludedList = $("curatedProfileExclusions");
+      excludedList.replaceChildren();
+      (data.excludedWorkbooks || []).forEach(item => {
+        const entry = document.createElement("li");
+        entry.textContent = `${item.file}: ${item.reason}`;
+        excludedList.appendChild(entry);
+      });
+      if (data.excludedWorkbooks?.length) {
+        const note = document.createElement("li");
+        note.textContent =
+          "These excluded values do not appear in the profile picker or global scan.";
+        excludedList.appendChild(note);
+      }
+      return true;
+    } catch (error) {
+      curatedProfilesLoad = null;
+      const message = error instanceof Error ? error.message : String(error);
+      status.textContent = `Curated profiles unavailable: ${message}`;
+      console.error("Could not load curated source profiles.", error);
+      return false;
+    }
+  })();
+  return curatedProfilesLoad;
 }
 
 function renderGridMetadata(metadata) {
@@ -914,280 +1346,6 @@ function renderGridMetadata(metadata) {
   }
 }
 
-async function loadKnownSiteValidation() {
-  const status = $("knownSitesStatus");
-  const rows = $("knownSitesRows");
-  if (!status || !rows) return;
-  try {
-    const response = await fetch("./assets/known_sites_validation.json");
-    if (!response.ok) {
-      throw new Error(`Validation report request failed (HTTP ${response.status}).`);
-    }
-    const report = await response.json();
-    if (!Array.isArray(report.validation) || report.validation.length === 0) {
-      throw new Error("Validation report contains no site checks.");
-    }
-    rows.replaceChildren();
-    report.validation.forEach(site => {
-      const row = document.createElement("tr");
-      const featureValue = site.test.feature === "temperature"
-        ? `${site.nearestTile.temperatureC.toFixed(1)} °C`
-        : site.test.feature === "elevation"
-          ? `${Math.round(site.nearestTile.elevationM).toLocaleString()} m`
-          : site.test.feature === "slope"
-            ? `${site.nearestTile.slopeDegrees.toFixed(1)}°`
-            : `${site.nearestTile.aridity0To10.toFixed(1)} / 10`;
-      const values = [
-        site.name,
-        `${site.test.feature} · ${site.test.direction}`,
-        featureValue,
-        `${site.test.topPercent.toFixed(2)}%`,
-        site.test.passesValidation
-          ? "PASS"
-          : site.test.coordinateWithinOneCell
-            ? "FAIL"
-            : "TOO FAR"
-      ];
-      values.forEach((value, index) => {
-        const cell = document.createElement(index === 0 ? "th" : "td");
-        if (index === 0) cell.scope = "row";
-        cell.textContent = value;
-        row.appendChild(cell);
-      });
-      const sourceCell = document.createElement("td");
-      const distanceCell = document.createElement("td");
-      distanceCell.textContent = `${site.nearestTile.distanceKm.toFixed(1)} km`;
-      row.appendChild(distanceCell);
-      const sourceLink = document.createElement("a");
-      sourceLink.href = site.source_url;
-      sourceLink.target = "_blank";
-      sourceLink.rel = "noopener noreferrer";
-      sourceLink.textContent = "Approximate-coordinate reference ↗";
-      sourceCell.appendChild(sourceLink);
-      row.appendChild(sourceCell);
-      rows.appendChild(row);
-    });
-    const failed = report.validation.filter(
-      site => !site.test.passesValidation
-    ).length;
-    const passed = report.validation.length - failed;
-    status.textContent =
-      `${report.validation.length} approximate-coordinate checks · ` +
-      `${report.earthGrid.pointCount.toLocaleString()} Earth cells · ` +
-      `${passed} pass · ${failed} fail (feature threshold or one-cell distance limit). ` +
-      "These are limited sanity checks, not independent validation.";
-    $("weightSensitivityStatus").textContent =
-      `Weight sensitivity: minimum top-20 overlap under individual ±20% weight changes ` +
-      `${report.weightSensitivity.minimumTop20OverlapPercent.toFixed(0)}%. ` +
-      "See the downloadable report for each perturbation and target values.";
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    status.textContent = `Known-site validation unavailable: ${message}`;
-    console.error("Could not load known-site validation report.", error);
-  }
-}
-
-function formatReferenceValue(value, unit, decimals = 1) {
-  return Number.isFinite(value) ? `${value.toFixed(decimals)} ${unit}` : "Not available";
-}
-
-function renderMarsReferenceRows(regions) {
-  const body = $("marsReferenceRows");
-  body.replaceChildren();
-
-  regions.forEach(region => {
-    const row = document.createElement("tr");
-    const center = Number.isFinite(region.centerLatitude)
-      ? `${region.centerLatitude.toFixed(1)}°, ${
-        Number.isFinite(region.centerLongitude)
-          ? `${region.centerLongitude.toFixed(1)}°`
-          : "all longitudes"
-      }`
-      : "Not available";
-    const values = [
-      region.name,
-      center,
-      formatReferenceValue(region.molaTopographyMeters, "m"),
-      formatReferenceValue(region.molaSlopeDegrees, "°"),
-      formatReferenceValue(region.spreadsheetMeanAnnualTemperatureC, "°C"),
-      formatReferenceValue(region.spreadsheetMeanPressurePa, "Pa", 0)
-    ];
-    values.forEach((value, index) => {
-      const cell = document.createElement(index === 0 ? "th" : "td");
-      if (index === 0) cell.scope = "row";
-      cell.textContent = value;
-      row.appendChild(cell);
-    });
-    body.appendChild(row);
-  });
-}
-
-function renderMarsSourceParameters(region) {
-  const body = $("marsSourceParameterRows");
-  body.replaceChildren();
-  const columns = marsReference.marsDataset.sourceColumns;
-
-  const appendRow = (parameterName, rawValue, weightField = null) => {
-    const row = document.createElement("tr");
-    const parameter = document.createElement("th");
-    parameter.scope = "row";
-    parameter.textContent = parameterName;
-    const value = document.createElement("td");
-    value.textContent = rawValue || "Not supplied";
-    const weight = document.createElement("td");
-    if (weightField) {
-      const label = weightField[0].toUpperCase() + weightField.slice(1);
-      weight.textContent = `${$(`weight${label}`).value}× · ${weightField}`;
-      weight.dataset.weightField = weightField;
-    } else {
-      weight.textContent = "Not scored · no comparable Earth-grid field";
-    }
-    row.append(parameter, value, weight);
-    body.appendChild(row);
-  };
-
-  columns.forEach((column, index) => {
-    const normalized = column.toLowerCase();
-    const weightField = normalized.includes("mean elevation (km)")
-      ? "elevation"
-      : normalized.includes("mean annual temp (c)") &&
-          !normalized.includes(" - min") &&
-          !normalized.includes(" - max")
-        ? "temperature"
-        : null;
-    appendRow(column, region.sourceValues[index], weightField);
-  });
-  appendRow(
-    "MOLA-derived regional slope",
-    formatReferenceValue(region.molaSlopeDegrees, "°", 2),
-    Number.isFinite(region.molaSlopeDegrees) ? "slope" : null
-  );
-}
-
-function updateMarsSourceWeights() {
-  document.querySelectorAll("#marsSourceParameterRows [data-weight-field]")
-    .forEach(cell => {
-      const field = cell.dataset.weightField;
-      const label = field[0].toUpperCase() + field.slice(1);
-      cell.textContent = `${$(`weight${label}`).value}× · ${field}`;
-    });
-}
-
-function renderParameterDefinitions(containerId, definition) {
-  const container = $(containerId);
-  const table = document.createElement("table");
-  table.className = "risk-review-table";
-  const head = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-  definition.columns.forEach(column => {
-    const cell = document.createElement("th");
-    cell.scope = "col";
-    cell.textContent = column;
-    headerRow.appendChild(cell);
-  });
-  head.appendChild(headerRow);
-  const body = document.createElement("tbody");
-  definition.rows.forEach(values => {
-    const row = document.createElement("tr");
-    values.forEach(value => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      row.appendChild(cell);
-    });
-    body.appendChild(row);
-  });
-  table.append(head, body);
-  container.replaceChildren(table);
-}
-
-async function loadMarsReference() {
-  try {
-    const response = await fetch("./assets/mars_reference.json");
-    if (!response.ok) {
-      throw new Error(`Mars reference data request failed (HTTP ${response.status}).`);
-    }
-    const reference = await response.json();
-    const regions = reference?.marsDataset?.regions;
-    if (reference?.schemaVersion !== 1 || !Array.isArray(regions) || !regions.length) {
-      throw new Error("Mars reference data has an unsupported or empty format.");
-    }
-
-    marsReference = reference;
-    const picker = $("marsAnchorRegion");
-    picker.replaceChildren();
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Choose a Mars region (optional)";
-    picker.appendChild(placeholder);
-    regions.forEach(region => {
-      const option = document.createElement("option");
-      option.value = region.id;
-      option.textContent = region.name;
-      picker.appendChild(option);
-    });
-    picker.disabled = false;
-    $("marsDataStatus").textContent =
-      `${regions.length} supplied Mars regions · ` +
-      `${reference.parameterDefinitions.earth.rows.length} Earth field definitions · ` +
-      `${reference.parameterDefinitions.moon.rows.length} lunar field definitions.`;
-    renderParameterDefinitions(
-      "earthParameterDefinitions",
-      reference.parameterDefinitions.earth
-    );
-    renderParameterDefinitions(
-      "lunarParameterDefinitions",
-      reference.parameterDefinitions.moon
-    );
-    $("marsReferenceStatus").textContent =
-      "Choose a region to copy its supplied temperature/elevation and MOLA slope as numeric targets. " +
-      "These cross-planet values are not physical equivalences; unavailable Earth-grid fields are not scored.";
-    renderMarsReferenceRows(regions);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    $("marsDataStatus").textContent = `Mars source data unavailable: ${message}`;
-    $("marsReferenceStatus").textContent =
-      "Mars reference data could not be loaded. Manual Earth requirements remain available.";
-    console.error("Could not load Mars reference data.", error);
-  }
-}
-
-function selectMarsAnchor() {
-  const region = marsReference?.marsDataset.regions.find(
-    item => item.id === $("marsAnchorRegion").value
-  );
-  if (!region) {
-    $("marsReferenceStatus").textContent =
-      "No Mars anchor selected. Set each Earth search requirement manually.";
-    return;
-  }
-  const targets = [
-    ["temperature", region.spreadsheetMeanAnnualTemperatureC],
-    ["elevation", Number.isFinite(region.spreadsheetMeanElevationKm)
-      ? region.spreadsheetMeanElevationKm * 1000
-      : null]
-  ];
-  const applied = [];
-  targets.forEach(([field, value]) => {
-    if (!Number.isFinite(value)) return;
-    const input = $(`grid${field[0].toUpperCase()}${field.slice(1)}`);
-    const boundedValue = Math.min(
-      Number(input.max),
-      Math.max(Number(input.min), value)
-    );
-    input.value = field === "slope"
-      ? boundedValue.toFixed(1)
-      : String(Math.round(boundedValue));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    applied.push(field);
-  });
-  renderMarsSourceParameters(region);
-  $("marsReferenceStatus").textContent =
-    `${region.name}: copied available numeric targets (${applied.join(", ") || "none"}). ` +
-    `MOLA slope ${formatReferenceValue(region.molaSlopeDegrees, "°", 2)} is reference-only ` +
-    "because its approximately 27.8 km north-south source spacing differs from the approximately 15 km equal-area Earth grid. " +
-    "Other fields are not measured in the Earth grid.";
-}
-
 function showPage(pageId, updateHistory = true) {
   const views = document.querySelectorAll(".page-view");
   views.forEach(view => {
@@ -1203,7 +1361,6 @@ function showPage(pageId, updateHistory = true) {
 
   const isAppPage = pageId === "atlasView" || pageId === "roverView";
   $("moonBtn").closest(".modes").classList.toggle("hidden", !isAppPage);
-  $("marsTargetControls").classList.toggle("hidden", mode !== "mars" || pageId !== "atlasView");
   document.body.dataset.page = pageId;
 
   if (updateHistory) {
@@ -1656,13 +1813,8 @@ function setMode(nextMode) {
 
   updateSunCalculator(Number($("sunLatitude").value));
   updateMap();
-  $("marsTargetControls").classList.toggle(
-    "hidden",
-    mode !== "mars" || document.body.dataset.page !== "atlasView"
-  );
 }
 
-$("marsAnchorRegion").addEventListener("change", selectMarsAnchor);
 $("moonBtn").addEventListener("click", () => setMode("moon"));
 $("marsBtn").addEventListener("click", () => setMode("mars"));
 
@@ -1689,8 +1841,8 @@ $("riskManagementButton").addEventListener("click", event => {
   const expanded = button.getAttribute("aria-expanded") !== "true";
   button.setAttribute("aria-expanded", String(expanded));
   button.textContent = expanded
-    ? "CLOSE ROVER RISK MANAGEMENT"
-    : "OPEN ROVER RISK MANAGEMENT";
+    ? "CLOSE SUBSYSTEM REFERENCE"
+    : "OPEN SUBSYSTEM REFERENCE";
   panel.classList.toggle("hidden", !expanded);
   if (expanded) renderRiskReview();
 });
@@ -1706,37 +1858,62 @@ $("riskReviewCandidate").addEventListener("change", () => {
 $("roverPreset").addEventListener("change", () => {
   $("roverPresetNote").textContent =
     $("roverPreset").value === "perseverance"
-      ? "Perseverance-inspired scenario label only. The code-built illustration does not reproduce flight hardware or assert compatibility."
-      : "Conceptual lunar-scout scenario only. The same illustrative geometry is shown; no second rover design or verified capability is represented.";
+      ? "NASA facts describe Perseverance and are independent of the displayed model. This preset changes the engineering reference, not the model."
+      : "Lunar-scout framing is conceptual; cited quantitative design facts remain Perseverance references. The displayed model is a visual aid, not a lunar vehicle design.";
 });
 
-function controlRoverView(action, value = 0) {
-  document.dispatchEvent(new CustomEvent("rover-view", {
-    detail: { action, value }
-  }));
+const roverModel = $("roverModel");
+const roverModelFallback = $("roverModelFallback");
+
+function changeRoverOrbit(thetaDelta, phi = null) {
+  if (!roverModel.loaded) return;
+  const orbit = roverModel.getCameraOrbit();
+  const nextTheta = orbit.theta + thetaDelta;
+  const nextPhi = phi === null ? orbit.phi : phi;
+  roverModel.setAttribute(
+    "camera-orbit",
+    `${nextTheta}rad ${nextPhi}rad ${orbit.radius}m`
+  );
 }
 
 $("roverViewLeft").addEventListener("click", () => {
-  controlRoverView("rotate", -Math.PI / 4);
+  changeRoverOrbit(-Math.PI / 4);
 });
 
 $("roverViewRight").addEventListener("click", () => {
-  controlRoverView("rotate", Math.PI / 4);
+  changeRoverOrbit(Math.PI / 4);
 });
 
 $("roverViewTop").addEventListener("click", () => {
-  controlRoverView("top");
+  changeRoverOrbit(0, 0.12);
 });
 
 $("roverViewReset").addEventListener("click", () => {
-  controlRoverView("reset");
+  if (roverModel.loaded) {
+    roverModel.setAttribute("camera-orbit", "35deg 70deg 5m");
+  }
 });
 
 $("roverAutoRotate").addEventListener("click", event => {
   const button = event.currentTarget;
   const enabled = button.getAttribute("aria-pressed") !== "true";
   button.setAttribute("aria-pressed", String(enabled));
-  controlRoverView("autoRotate", enabled);
+  roverModel.toggleAttribute("auto-rotate", enabled);
+});
+
+roverModel.addEventListener("error", () => {
+  roverModelFallback.classList.remove("hidden");
+});
+
+roverModel.addEventListener("load", () => {
+  roverModelFallback.classList.add("hidden");
+  roverModel.setAttribute("camera-controls", "");
+});
+
+$("retryRoverModel").addEventListener("click", () => {
+  const modelUrl = new URL(roverModel.getAttribute("src"), document.baseURI);
+  modelUrl.searchParams.set("retry", String(Date.now()));
+  roverModel.src = modelUrl.href;
 });
 
 $("showAllBtn").addEventListener("click", () => {
@@ -1778,7 +1955,6 @@ $("sunLatitude").addEventListener("input", () => {
   const weight = $(`weight${label}`);
   weight.addEventListener("input", () => {
     $(`weight${label}Value`).textContent = `${weight.value}×`;
-    updateMarsSourceWeights();
     if (gridHasResults) {
       clearGridResults();
       $("gridSearchStatus").textContent =
@@ -1804,6 +1980,43 @@ $("gridSearchBtn").addEventListener("click", () => {
 });
 
 $("exportTopSites").addEventListener("click", exportTopGridSites);
+$("browseCuratedProfiles").addEventListener("click", () => {
+  showPage("analogsView");
+  $("curatedProfilePanel").open = true;
+  if (!curatedProfilesLoad) loadCuratedProfiles();
+  $("curatedProfilePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+$("curatedProfilePanel").addEventListener("toggle", event => {
+  if (event.currentTarget.open && !curatedProfilesLoad) loadCuratedProfiles();
+});
+$("curatedProfileSearch").addEventListener("input", () => {
+  curatedProfilePage = 0;
+  renderCuratedProfileList();
+});
+$("curatedProfileBody").addEventListener("change", () => {
+  curatedProfilePage = 0;
+  renderCuratedProfileList();
+});
+$("curatedProfilePrevious").addEventListener("click", () => {
+  curatedProfilePage = Math.max(0, curatedProfilePage - 1);
+  renderCuratedProfileList();
+});
+$("curatedProfileNext").addEventListener("click", () => {
+  curatedProfilePage += 1;
+  renderCuratedProfileList();
+});
+$("analogRegionalCandidate").addEventListener("change", event => {
+  const result = gridScanResults[Number(event.currentTarget.value)];
+  selectedGridResult = result || null;
+  $("loadRegionalPower").disabled = !result;
+  $("regionalPowerMetrics").replaceChildren();
+  $("regionalPowerMetrics").classList.add("hidden");
+  $("loadRegionalPower").textContent = "LOAD REGIONAL TEMPERATURE";
+  $("regionalPowerStatus").textContent = result
+    ? `Selected candidate · ${result.latitude.toFixed(2)}°, ${result.longitude.toFixed(2)}°. Load the optional 2° × 2° NASA POWER neighborhood context.`
+    : "Choose a candidate from the latest scan first.";
+});
+$("loadRegionalPower").addEventListener("click", loadRegionalPowerContext);
 $("retryGridPower").addEventListener("click", () => {
   if (selectedGridResult) {
     updateGridPower(selectedGridResult, $("gridPowerStatus"), true);
@@ -1821,9 +2034,7 @@ updateSunCalculator(Number($("sunLatitude").value));
 updateMap();
 initGridSearch();
 renderAnalogCatalog();
-loadKnownSiteValidation();
 updateRoverCandidates([]);
-loadMarsReference();
 
 const requestedPage = location.hash.slice(1).toLowerCase();
 const pageId = [...document.querySelectorAll(".page-view")]
