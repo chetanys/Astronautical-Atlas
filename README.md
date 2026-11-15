@@ -36,7 +36,7 @@ The Analogs page presents 115 source-linked Moon and Mars profiles in pages of 2
 
 ### Globe and Earth context
 
-The interactive 3D Earth globe displays selected results and supports inspection of candidate details, parameter breakdowns and JSON export. NASA POWER provides live daily 2025 temperature, wind and solar context for a selected Earth analogue. Optional MODIS MOD11A2 day/night surface-temperature context is available for a selected global-grid cell or the top candidates from two 2025 seasonal windows. These live observations add context only; they do not change global-scan rankings.
+The interactive 3D Earth globe displays selected results and supports inspection of candidate details, parameter breakdowns and JSON export. NASA POWER provides live daily 2025 wind and solar context for a selected Earth analogue. Optional MODIS MOD11A2 day/night surface-temperature context is available for a selected global-grid cell or the top candidates from two 2025 seasonal windows. These live observations add context only; they do not change global-scan rankings.
 
 The Guide explains the workflows and links to a rover field-planning visual example. The example is not official data, a validated simulation, or a rover qualification result.
 
@@ -417,7 +417,7 @@ http://localhost:5500
 1. Open **Application** and choose **Moon** or **Mars**.
 2. Select a quadrangle on the map or from the quadrangle menu, then choose **Find Earth Analogues** to query the workbook-backed ranking.
 3. Use **Independent Global Scan** below it to set the four Earth-grid targets and weights, then select **Scan Global Grid**. Choose a result to inspect it on the globe.
-4. Select a ranked grid cell or mapped Earth analogue to inspect its available details. The NASA POWER panel loads daily 2025 temperature, wind and solar context on demand; the export control downloads the selected site profile as JSON.
+4. Select a ranked grid cell or mapped Earth analogue to inspect its available details. The NASA POWER panel loads daily 2025 wind and solar context on demand; the export control downloads the selected site profile as JSON.
 5. To request optional MODIS context for an Earth grid result, select it and choose **Load for Selected Cell**. The multi-cell option requests more upstream data and may take longer. MODIS is context only and does not change rankings.
 6. Open **Analogs** to search and filter the separate Moon/Mars reference catalog and inspect citations. The **Guide** contains workflow instructions and the clearly labeled illustrative rover walkthrough.
 

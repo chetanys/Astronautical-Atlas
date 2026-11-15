@@ -112,11 +112,6 @@ const PLANETS = {
 };
 
 const ANAGLOG_LIMIT = 5;
-const MONTHS = [
-  ["JAN", "Jan"], ["FEB", "Feb"], ["MAR", "Mar"], ["APR", "Apr"],
-  ["MAY", "May"], ["JUN", "Jun"], ["JUL", "Jul"], ["AUG", "Aug"],
-  ["SEP", "Sep"], ["OCT", "Oct"], ["NOV", "Nov"], ["DEC", "Dec"]
-];
 
 let mode = "moon";
 let selectedQuadrangle = null;
@@ -898,7 +893,7 @@ function climateKey(site) {
 async function requestClimateData(site) {
   const url = new URL("https://power.larc.nasa.gov/api/temporal/daily/point");
   url.search = new URLSearchParams({
-    parameters: "T2M,WS2M,ALLSKY_SFC_SW_DWN",
+    parameters: "WS2M,ALLSKY_SFC_SW_DWN",
     community: "AG",
     longitude: String(site.lon),
     latitude: String(site.lat),
@@ -914,7 +909,7 @@ async function requestClimateData(site) {
 
   const result = await response.json();
   const parameters = result?.properties?.parameter;
-  const dailyValues = ["T2M", "WS2M", "ALLSKY_SFC_SW_DWN"].map(name => {
+  const dailyValues = ["WS2M", "ALLSKY_SFC_SW_DWN"].map(name => {
     const series = parameters?.[name];
     if (!series || typeof series !== "object") {
       throw new Error(`NASA POWER omitted the ${name} daily series.`);
@@ -930,27 +925,12 @@ async function requestClimateData(site) {
     throw new Error("NASA POWER returned fewer than 300 valid daily values for 2025.");
   }
 
-  const temperaturesByMonth = Array.from({ length: 12 }, () => []);
-  Object.entries(parameters.T2M).forEach(([date, value]) => {
-    if (date.startsWith(String(CLIMATE_YEAR)) && isValid(value)) {
-      const month = Number(date.slice(4, 6)) - 1;
-      if (month >= 0 && month < temperaturesByMonth.length) {
-        temperaturesByMonth[month].push(value);
-      }
-    }
-  });
-  if (temperaturesByMonth.some(month => month.length < 20)) {
-    throw new Error("NASA POWER returned incomplete monthly temperature data for 2025.");
-  }
-
   const average = values =>
     values.reduce((total, value) => total + value, 0) / values.length;
 
   return {
-    temperature: average(validSeries[0]),
-    windSpeed: average(validSeries[1]),
-    solarRadiation: average(validSeries[2]),
-    monthlyTemperature: temperaturesByMonth.map(average)
+    windSpeed: average(validSeries[0]),
+    solarRadiation: average(validSeries[1])
   };
 }
 
@@ -966,11 +946,9 @@ function loadClimateData(site, forceRefresh = false) {
   activeClimateKey = key;
   const requestId = ++climateRequestId;
   const climateMetrics = $("climateMetrics");
-  const climateChart = $("climateChart");
   const refreshButton = $("refreshClimate");
 
   climateMetrics.classList.add("hidden");
-  climateChart.classList.add("hidden");
   refreshButton.classList.add("hidden");
   $("climateStatus").textContent = "Loading NASA POWER climate data…";
 
@@ -995,7 +973,6 @@ function renderClimateData(data) {
   $("refreshClimate").classList.add("hidden");
 
   const metrics = [
-    ["2 M AIR TEMP", `${data.temperature.toFixed(1)} °C`],
     ["WIND SPEED", `${data.windSpeed.toFixed(1)} m/s`],
     ["SOLAR RADIATION", `${data.solarRadiation.toFixed(2)} kWh/m²/day`]
   ];
@@ -1007,79 +984,6 @@ function renderClimateData(data) {
     </div>
   `).join("");
   $("climateMetrics").classList.remove("hidden");
-  renderTemperatureChart(data.monthlyTemperature);
-}
-
-function renderTemperatureChart(monthlyTemperatures) {
-  const chart = $("climateChart");
-  const width = 360;
-  const height = 150;
-  const left = 32;
-  const right = 8;
-  const top = 12;
-  const bottom = 28;
-  const values = monthlyTemperatures;
-  const low = Math.floor(Math.min(...values) / 5) * 5;
-  const high = Math.ceil(Math.max(...values) / 5) * 5 || low + 5;
-  const range = high - low || 5;
-  const plotWidth = width - left - right;
-  const plotHeight = height - top - bottom;
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "NASA POWER monthly mean air temperature");
-
-  const addElement = (name, attributes, text = "") => {
-    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
-    Object.entries(attributes).forEach(([key, value]) => {
-      element.setAttribute(key, String(value));
-    });
-    element.textContent = text;
-    svg.appendChild(element);
-    return element;
-  };
-
-  addElement("title", {}, `Monthly mean air temperature in ${CLIMATE_YEAR}`);
-
-  for (let tick = 0; tick <= 2; tick++) {
-    const value = low + range * tick / 2;
-    const y = top + plotHeight * (1 - tick / 2);
-    addElement("line", {
-      x1: left, x2: width - right, y1: y, y2: y, class: "chart-grid"
-    });
-    addElement("text", {
-      x: left - 5, y: y + 3, "text-anchor": "end", class: "chart-axis"
-    }, `${value.toFixed(0)}°`);
-  }
-
-  const points = values.map((value, index) => ({
-    x: left + plotWidth * index / (values.length - 1),
-    y: top + plotHeight * (1 - (value - low) / range),
-    value
-  }));
-
-  addElement("polyline", {
-    points: points.map(point => `${point.x},${point.y}`).join(" "),
-    class: "chart-line"
-  });
-
-  points.forEach((point, index) => {
-    const circle = addElement("circle", {
-      cx: point.x, cy: point.y, r: 2.5, class: "chart-point"
-    });
-    const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
-    title.textContent =
-      `${MONTHS[index][1]} ${CLIMATE_YEAR}: ${point.value.toFixed(1)} °C`;
-    circle.appendChild(title);
-    addElement("text", {
-      x: point.x, y: height - 8, "text-anchor": "middle", class: "chart-month"
-    }, MONTHS[index][1]);
-  });
-
-  const label = document.createElement("p");
-  label.textContent = `${CLIMATE_YEAR} MONTHLY MEAN AIR TEMPERATURE · °C`;
-  chart.replaceChildren(label, svg);
-  chart.classList.remove("hidden");
 }
 
 /* ------------------------------------------------------------------ *
