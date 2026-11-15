@@ -3011,3 +3011,114 @@ a.nav-link {
   .curated-profile-parameters { grid-template-columns: 1fr; gap: 4px; }
   .modis-metrics { grid-template-columns: 1fr; }
 }
+
+/* Analogs page uses the landing page's black, minimal, teal-accented theme. */
+#analogsView.content-view {
+  min-height: calc(100vh - 76px);
+  padding-block: clamp(34px, 5vw, 72px);
+  background: #060607;
+  color: #f5f5f5;
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .page-heading h1 {
+  font-weight: 200;
+  letter-spacing: -.03em;
+  line-height: 1.04;
+  text-transform: uppercase;
+}
+
+#analogsView .page-heading > p {
+  color: #a3a3a3;
+  font: 400 13.5px/1.8 "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .eyebrow,
+#analogsView .curated-profile-label {
+  color: #5eead4;
+  font: 500 9px "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+}
+
+#analogsView .catalog-notice,
+#analogsView .analog-grid-card,
+#analogsView .curated-profile-panel,
+#analogsView .formula-card {
+  border: 1px solid #262626;
+  background: #0b0b0b;
+}
+
+#analogsView .catalog-notice strong,
+#analogsView .analog-grid-card strong,
+#analogsView .curated-profile-details h3 {
+  color: #5eead4;
+}
+
+#analogsView .catalog-notice p,
+#analogsView .analog-status,
+#analogsView .curated-profile-panel > p,
+#analogsView .curated-profile-details > p,
+#analogsView .curated-profile-source-note,
+#analogsView .curated-profile-exclusions ul,
+#analogsView .formula-card p,
+#analogsView .formula-card a {
+  color: #a3a3a3;
+  font: 400 13px/1.75 "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .analog-section-title,
+#analogsView .formula-card h2 {
+  font-size: clamp(20px, 2.4vw, 28px);
+  font-weight: 300;
+  letter-spacing: -.02em;
+}
+
+#analogsView .analog-grid-card span,
+#analogsView .curated-profile-choice span,
+#analogsView .curated-profile-parameters dd {
+  color: #a3a3a3;
+  font: 400 12px/1.65 "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .curated-profile-panel > summary,
+#analogsView .curated-profile-details details > summary,
+#analogsView .curated-profile-exclusions > summary,
+#analogsView .curated-profile-parameters dt {
+  color: #5eead4;
+  font: 500 11px/1.6 "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .curated-profile-browser-controls input,
+#analogsView .curated-profile-browser-controls select,
+#analogsView .curated-profile-panel select,
+#analogsView .curated-profile-choice,
+#analogsView .curated-profile-details {
+  border-color: #303030;
+  background: #101010;
+  color: #f5f5f5;
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+#analogsView .curated-profile-choice:hover,
+#analogsView .curated-profile-choice.active {
+  border-color: #5eead4;
+}
+
+#analogsView .curated-profile-details a,
+#analogsView .formula-card a {
+  color: #5eead4;
+}
+
+#analogsView .secondary-action {
+  border-color: #5eead4;
+  background: transparent;
+  color: #eafffb;
+  font: 500 10px "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: .12em;
+}
+
+#analogsView .secondary-action:hover {
+  background: #5eead4;
+  color: #05130f;
+}

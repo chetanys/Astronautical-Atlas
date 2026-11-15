@@ -102,7 +102,7 @@ This workbook-preparation description is not the algorithm used by the global Ea
 
 ### 3.4 Parameter weighting framework
 
-The research tables below record assigned parameter weights for Mars and the Moon. They document the research framework and should not be read as the set of fields or weights used by every website workflow.
+The research tables below record assigned parameter weights for Mars and the Moon. They document the research framework and should not be read as the exact fields or weights used by every website workflow. In this README, **weighted-parameter model** means a scoring method that compares multiple environmental parameters using explicit weights.
 
 The research framework's weighted score is calculated as:
 
@@ -164,15 +164,49 @@ The weights for each planetary body sum to 100%.
 
 The weights shown above are the project's assigned research-framework weights. Their scientific rationale should be documented and validated before drawing scientific conclusions from them. The website's global grid scan uses its own four Earth-grid fields and user-adjustable weights.
 
-### 3.5 Current website ranking methods
+### 3.5 Current website weighted-parameter model
 
-The current website does **not** implement a trained ML model. The quadrangle workflow uses a provisional weighted-distance ranking over workbook-backed parameters. The independent global scan uses a browser Web Worker to rank Earth-grid cells against the user's active temperature, elevation, slope and aridity targets; zero-weight fields are excluded. The scan's relative score is not a probability.
+The website uses an interpretable, **ML-inspired weighted-parameter ranking model**: it compares multiple features, applies explicit parameter weights and ranks candidate Earth analogues. The scoring rules and weights are set directly; they are not learned from labeled training examples. The resulting scores are relative similarity rankings, not probabilities or independent predictions.
 
-Both methods return candidates for further investigation. They have not been established here as mission recommendations, environmental equivalents, or qualification results.
+The two workflows use different inputs and scoring calculations:
+
+1. **Mapped quadrangle model (API):** For each available parameter, compare the planetary target with an Earth site value. The parameter similarity is scaled by the observed spread among available Earth sites, with a floor based on 25% of the absolute target value or 1. The weighted average uses only parameters with data for both the target and candidate:
+
+   $$
+   s_i =
+   100 \max\left(
+   0,\,
+   1 - \frac{|t_i-e_i|}
+   {\max(r_i,\ 0.25|t_i|,\ 1)}
+   \right)
+   $$
+
+   $$
+   S =
+   \frac{\sum_{i\in A} w_i s_i}
+   {\sum_{i\in A} w_i}
+   $$
+
+   Here, $t_i$ is the planetary target, $e_i$ is the Earth-site value, $r_i$ is the observed Earth-site range for parameter $i$, $w_i$ is its configured weight, and $A$ is the set of parameters available on both sides. The API also reports data coverage, so a score based on fewer available parameters can be interpreted with that limitation in view.
+
+2. **Independent global-grid model (browser Web Worker):** Compare each grid cell with the user's temperature, elevation, slope and aridity targets. Zero-weight fields are omitted. The worker ranks cells by their weighted, scale-normalized absolute error and reports a score derived from that error:
+
+   $$
+   E(x) =
+   \frac{\sum_{i\in A} w_i\,|x_i-t_i|/q_i}
+   {\sum_{i\in A} w_i}
+   \qquad
+   \operatorname{score}(x) =
+   \operatorname{round}\left(\frac{100}{1+E(x)}\right)
+   $$
+
+   Here, $x_i$ is the grid-cell value, $t_i$ is the user target, $q_i$ is the field's positive scale from the grid metadata, and $A$ contains fields with a positive user weight. The displayed score is a relative ranking aid, not a probability.
+
+These are deterministic, rule-based weighted scoring methods with an ML-inspired multi-parameter structure. They have not been independently validated for use as field-site recommendations, environmental equivalents or mission qualification.
 
 ### 3.6 End-to-end application flow
 
-The current application has two separate ranking workflows, described above. The following scoring model and pipeline reproduce the supplied reference design; they are a proposed/reference specification and are **not** the scoring algorithm or architecture currently implemented by this repository.
+The current application has two separate weighted-parameter ranking workflows, described above. The following geometric-mean scoring model and four-stage pipeline reproduce the supplied reference design; they are a proposed/reference specification and are **not** the scoring algorithm or architecture currently implemented by this repository.
 
 ```mermaid
 flowchart TD
@@ -209,7 +243,7 @@ $$
 \prod_k s_k(x)^{\,w_k / \sum_j w_j}
 $$
 
-Here, $w_k$ is the weight for criterion $k$. This geometric-mean score and the reference pipeline above are included to match the supplied design screenshots; the current website still uses the separate provisional quadrangle weighted-distance ranking and browser-based global-grid scan described in §3.5.
+Here, $w_k$ is the weight for criterion $k$. This geometric-mean score and the reference pipeline above are included to match the supplied design screenshots; the current website uses the separate quadrangle and global-grid weighted-parameter calculations described in §3.5.
 
 ## 4. Parameters and Scientific Framework
 
@@ -317,55 +351,63 @@ The repository includes the research data and the runnable website/API:
 - Python 3.10 or later
 - Internet access for NASA POWER and ORNL DAAC MODIS requests
 
-No Node.js installation is needed. The website files and the three API workbooks (`api/data/mars_data.xlsx`, `api/data/moon_data.xlsx` and `api/data/earth_data.xlsx`) are included in the repository. The Python API dependencies are listed in `api/requirements.txt`. Keep the workbooks in that folder, and do not commit your local `.venv` environment.
+No Node.js installation is needed. The website files and the three API workbooks (`api/data/mars_data.xlsx`, `api/data/moon_data.xlsx` and `api/data/earth_data.xlsx`) are included in the repository. The Python API dependencies are listed in `api/requirements.txt`. Keep the workbooks in that folder. The setup below creates a local Python environment at `api/venv`; it is ignored by Git.
 
-### Download the project
+### Step 1 — Clone this repository
 
-Open a terminal and run these commands to download the project:
+Open a terminal and run:
 
-```sh
+```bash
 git clone https://github.com/chetanys/Astronautical-Atlas.git
 cd Astronautical-Atlas
 ```
 
-If you already downloaded or extracted the project, skip `git clone` and open a terminal in the project folder instead. This is the folder containing `index.html`, `README.md` and the `api` folder.
+If you already downloaded or extracted this repository, skip `git clone` and open a terminal in its project folder instead. It is the folder containing `index.html`, `README.md` and the `api` folder.
 
-### Install the API dependencies
+### Step 2 — Set up and start the API (Terminal 1)
 
-Run the commands for your operating system from the project folder (the folder containing `index.html`). This creates a private Python environment named `.venv` and installs the API packages into it.
+Open a terminal in the project folder (the folder containing `index.html`), then copy and run the commands for your operating system below. These commands enter `api`, create a virtual environment named `venv`, install the API dependencies, and start the API. Leave this terminal running while using the app.
 
 **macOS or Linux**
 
 ```sh
-python3 -m venv .venv
-source .venv/bin/activate
+cd api
+python3 -m venv venv
+source venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r api/requirements.txt
+python -m pip install -r requirements.txt
+uvicorn main:app --port 8000
 ```
 
 **Windows PowerShell**
 
 ```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
+cd api
+py -m venv venv
+.\venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r api/requirements.txt
+python -m pip install -r requirements.txt
+uvicorn main:app --port 8000
 ```
 
-If PowerShell says script execution is disabled, open **Command Prompt** in the project folder and run:
+**Windows Command Prompt**
 
 ```bat
-py -m venv .venv
-.venv\Scripts\activate.bat
+cd api
+py -m venv venv
+venv\Scripts\activate.bat
 python -m pip install --upgrade pip
-python -m pip install -r api\requirements.txt
+python -m pip install -r requirements.txt
+uvicorn main:app --port 8000
 ```
 
-### Start the website
+If PowerShell blocks environment activation, use the Command Prompt instructions instead. For later sessions, open a terminal in the project folder, run `cd api`, activate the existing environment for your terminal, then run `uvicorn main:app --port 8000`.
 
-The application needs two servers running at the same time. Keep both terminal windows open while using it.
+The API is available at [http://127.0.0.1:8000](http://127.0.0.1:8000). Leave Terminal 1 running.
 
-Open **Terminal 1** in the project folder. You do not need to activate `.venv` in this terminal.
+### Step 3 — Start the website (Terminal 2)
+
+Open a second terminal in the project folder (the folder containing `index.html`). Keep it open alongside the API terminal.
 
 **macOS or Linux**
 ```sh
@@ -377,36 +419,11 @@ python3 -m http.server 5173 --bind 127.0.0.1
 py -m http.server 5173 --bind 127.0.0.1
 ```
 
-### Start the API
-
-Open **Terminal 2** in the same project folder. Activate the environment, change into `api`, and start the API using the commands for your operating system:
-
-**macOS or Linux**
-```sh
-source .venv/bin/activate
-cd api
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
-
-**Windows PowerShell**
-```powershell
-.\.venv\Scripts\Activate.ps1
-cd api
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
-
-**Windows Command Prompt**
-```bat
-.venv\Scripts\activate.bat
-cd api
-python -m uvicorn main:app --host 127.0.0.1 --port 8000
-```
-
 When the API starts, its terminal should say it is running on `http://127.0.0.1:8000`. You can check it by opening [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health); it should show `{"status":"running"}`.
 
 Now open the website at [http://127.0.0.1:5173](http://127.0.0.1:5173). Do not open `index.html` directly as a `file://` URL: the website's worker, data files and API need to be served over HTTP.
 
-If the API reports that port `8000` is already in use, stop the other server using that port or change the API command in Terminal 2 to port `8011`:
+If the API reports that port `8000` is already in use, stop the other server using that port or change the API command in Terminal 1 to port `8011`:
 
 ```sh
 python -m uvicorn main:app --host 127.0.0.1 --port 8011
