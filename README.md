@@ -1,80 +1,173 @@
-<<<<<<< HEAD
-# Hackathon1
+# Otherworld Atlas
 
-Otherworld Atlas compares Earth locations in Moon and Mars modes. Site profiles
-also load NASA POWER long-term climatology for mean temperature, wind speed and
-surface solar radiation at each location, including monthly mean temperature.
-Choose a location from the map's
-“Open a site” menu or click its globe marker to view the profile and climate
-readings. Site profiles can be opened with a `?site=` URL parameter and
-exported as JSON. The sidebar's no-API sunlight calculator estimates maximum
-winter-solstice Sun elevation at local noon from latitude, using Mars's axial
-tilt in Mars mode. Low-light winter analog
-sites (10° or less) are highlighted on the globe; this is illumination context,
-not a rover failure probability. The calculator also visualizes the shadow of a
-1 m rover using `shadow length = 1 m / tan(sun elevation)`. At or below the
-horizon it reports night instead of inventing a shadow length.
+Otherworld Atlas is a browser-based planetary analog screening prototype. It
+searches a bundled Earth land grid locally, ranks the closest cells for
+user-selected environmental targets, and presents the result as regional
+context. It is not a site certification, rover safety assessment, or mission
+planning tool.
 
-The model's checkpoint files are not included here: the Hugging Face repository
-is approximately 12.8 GB. The Lunar AI Lab source and its official hosted-demo
-embed remain in the project but are hidden from the website for now. See the
-[model card](https://huggingface.co/nasa-ibm-ai4science/NASA-IBM-Lunar-Foundation-Model)
-and [live demo](https://huggingface.co/spaces/nasa-ibm-ai4science/nasa-ibm-lunar-foundation-model-generation-demo)
-for model details and usage. Generated outputs are qualitative research probes,
-not calibrated science or mission-planning data.
+## What the app currently measures
 
-The planetary analog map uses NASA's interactive 3D Earth model, with the
-existing location markers, filters and site profiles overlaid on the globe.
-The model is stored in `assets/earth.glb` so it can load from local development
-servers such as VS Code Live Server, which cannot fetch NASA's CORS-restricted
-model endpoint. NASA POWER climatology is requested from its public API when a
-site profile is opened; those readings supplement the illustrative profile
-and do not currently affect match scores. The API's grid-cell averages may
-differ from local conditions, particularly in high-relief terrain.
+The checked-in browser grid currently scans **575,482 source-covered land
+cells** on an approximately **15 km equal-area grid**. Its temperature,
+elevation, slope and aridity sources are recorded in
+`assets/earth_grid.json`; the checked-in grid currently uses TerraClimate
+2025 and WorldClim 2.1. The NASA extraction path below produces a replacement
+grid, but it does not become active until you export the layers and rebuild
+the binary.
 
-## Global grid search
+The NASA path uses NASADEM v001 elevation and MODIS MOD11A2 v061 clear-QA
+surface temperatures for complete calendar years 2015–2025. Temperature is
+the midpoint of the annual mean day and night LST values, not air temperature.
+NASADEM is not polar-global: its elevation/slope only replace the fallback
+where its valid land coverage exists. MODIS clear-sky gaps likewise retain
+the TerraClimate air-temperature fallback. The generated grid metadata
+records NASA coverage counts and these mixed-source definitions. Aridity
+remains the TerraClimate-derived proxy
+`10 × clamp(1 − annual precipitation / annual PET, 0, 1)`.
 
-The global-grid search is separate from the illustrative named-site filters.
-It stores one six-Float32 record per valid land tile: latitude, longitude,
-temperature, elevation, slope, and aridity. Tiles are approximately 15 km in
-an equal-area EPSG:6933 grid; ocean and no-data cells are omitted. The 2025 build contains 575,482
-source-covered land tiles; the count is generated into `assets/earth_grid.json`,
-not assumed to be exactly 600,000. The input overlap currently covers latitudes
-about 82.3°S to 82.3°N; high-latitude land without WorldClim elevation is not
-included, so this is not yet a complete all-land global coverage product. The browser worker scans the bundled records locally
-and returns the ten best candidates.
+The Moon mode still sets context only: lunar rasters and authoritative
+Artemis-region geometries are not integrated. The supplied Mars spreadsheet
+and MOLA values are reference data, not equivalent Earth measurements.
 
-The four search features are mean annual temperature, elevation above sea
-level, regional slope, and an aridity index. Aridity is
-`10 × clamp(1 − annual precipitation / annual PET, 0, 1)`; higher values mean
-drier conditions. Regridding and slope are regional screening estimates, not
-rover-scale measurements, safety certifications, or mission recommendations.
-The score is a normalized distance to user-entered values, not a probability.
-Users set each feature's weight from 0 (excluded) to 5; active absolute
-differences are divided by that field's 5th-to-95th percentile spread and
-combined as a weighted mean distance. The displayed similarity is
-`100 / (1 + weighted distance)`, so candidates remain ranked even when all
-targets are far outside Earth's observed range. This normalization is
-data-dependent and has not been calibrated against expert analog rankings or
-rover outcomes.
+The score is a weighted mean of absolute differences divided by each field's
+observed 5th-to-95th percentile spread. Its display value is
+`100 / (1 + normalized distance)`. This is a relative screening score, not a
+probability, calibrated scientific model, or rover risk score. Temperature,
+elevation, slope and aridity are the only scored fields; other spreadsheet
+parameters have no corresponding global Earth measurements.
 
-### Build the Earth land grid
+## Live NASA POWER and MODIS context
 
-The preparation script downloads TerraClimate monthly NetCDF files plus
-WorldClim elevation and writes annualized rasters under ignored `data/`.
-The newest complete annual TerraClimate files found in the direct archive on
-2026-11-14 were 2025. The Earth Engine catalog metadata currently lists its
-TerraClimate collection through 2024, so the 2025 direct-archive files are
-identified as a later archive snapshot and are validated locally before use.
-They are not a near-real-time feed or a climate normal.
+Selecting a ranked Earth grid cell requests its climatology from the public
+NASA POWER point API. The browser requests `T2M`, `T2M_MAX`, `T2M_MIN` and
+`PRECTOTCORR`; the displayed values are live API responses, while the
+climatology itself covers January 2001 through December 2025. Temperature is
+in °C and corrected precipitation is in mm/day. A failed request is shown as
+unavailable and can be retried; no placeholder climate values are displayed.
+The top ten scan rows are enriched with the same API in batches of three.
+These POWER lookups do not alter the bundled-grid score.
+
+MODIS is a separate live contextual sample from the ORNL DAAC MODIS/VIIRS
+subsets service, product `MOD11A2`. Direct browser requests are blocked by
+CORS, so the app calls the same-origin Vercel function `api/modis.js`. On cell
+selection, it requests day and night bands for two 2023 windows (DOY 001–073
+and 177–249), each with a 3 km sample box. This is not a full-year climatology
+or a 15 km tile mean. The UI labels it a point-area sample and explicitly says
+it does not alter the grid ranking. The **Load MODIS for top 10** button makes
+the four requests per cell sequentially and only when clicked.
+
+The ORNL service may be unavailable; the current live endpoint test returned
+HTTP 503. In that case the app shows an unavailable state and offers a retry,
+without substituting values. The selected-sample UI has not been verified
+against live MODIS payloads while the upstream is returning 503. The proxy
+accepts only the two configured date windows and day/night LST bands, validates
+coordinates, and caches successful upstream responses for one day.
+
+For an offline AppEEARS fallback, download the top-ten coordinate file with
+**Export top 10 sites JSON**, then run:
+
+```sh
+python3 scripts/appeears_sites.py sites.json
+```
+
+The script prompts for Earthdata credentials without echoing or saving the
+password, requests MOD11A2 v061 day/night LST and paired QC layers for 2020–2024,
+and writes `assets/modis_cache.json` only after verifying downloaded file
+checksums and parsing good-QA observations. The live app does not read this
+cache. The fallback uses MOD11A2 mandatory QA bits 0–1 equal to zero and
+reports day/night land-surface temperature, not air temperature. Do not place
+credentials in browser code or commit them.
+
+The analog page returns the top 20 grid cells for the last search. They are
+data-ranked candidate cells, not 20 independently verified, named analog
+sites. The shared Earth and Moon spreadsheets provide parameter definitions,
+not measured site catalogs. The rover review reports which grid fields are
+available and their proxy similarity where applicable. It does not assign
+failure probabilities or infer coverage for unmeasured engineering factors.
+
+## Run locally
+
+Serve the repository over HTTP; browser workers and `fetch()` do not work
+reliably from a `file://` URL. For example:
+
+```sh
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`. Keep `assets/earth_grid.bin` and
+`assets/earth_grid.json` together; the JSON includes field units, scoring
+scales, spatial coverage and citations.
+
+## Verify NASA data access through the AppEEARS API
+
+The public AppEEARS product catalog confirms `MOD11A2.061` with
+`LST_Day_1km`, `LST_Night_1km`, `QC_Day` and `QC_Night`, and `NASADEM_NC.001`
+with `NASADEM_HGT` in metres. Verify the catalog without credentials:
+
+```sh
+python -m scripts.appeears_access_test --catalog-only
+```
+
+Run a small authenticated extraction for one point at Mauna Kea:
+
+```sh
+python -m scripts.appeears_access_test
+```
+
+The script prompts for the NASA Earthdata Login username and a hidden password;
+it does not save credentials. It submits a one-point MODIS task for 2020,
+requests both LST layers and their QC layers, polls the task, downloads the
+CSV bundle to `data/appeears/`, and verifies each file's SHA-256 checksum.
+Use `--site "Haughton impact crater"` to select another exact name from
+`assets/known_sites.csv`, `--year 2024` to test a different year, or
+`--task-id TASK_ID` to resume polling/downloading an existing task.
+
+MOD11A2 is an 8-day clear-sky land-surface-temperature composite, not air
+temperature. Use the paired QC layers and mask samples unless mandatory QA
+bits 0–1 equal 0; convert valid LST values with `Kelvin = DN × 0.02`, then
+`Celsius = Kelvin − 273.15`. A point extraction proves access and provides
+actual sample values, but does not activate or validate the browser's
+575,482-cell global grid. AppEEARS is not a one-call global 8-day raster
+export, and NASADEM point elevations alone cannot establish a 100 m-baseline
+slope. The checked-in grid remains TerraClimate/WorldClim until a separate,
+validated global build replaces it.
+
+## Optional full-grid Earth Engine raster export
+
+The NASA layers are prepared in Google Earth Engine and exported to Google
+Drive as one GeoTIFF aligned to the app's 15 km grid:
+
+1. Register the Cloud project for Earth Engine at
+   <https://console.cloud.google.com/earth-engine>. Earth Engine requires a
+   registered project; select commercial registration if this project will
+   be used commercially.
+2. Open <https://code.earthengine.google.com/> and select Cloud project
+   `nasa-project-514803` in the project selector.
+3. Open `scripts/export_nasa_earth_layers.js` in the Code Editor, run it, then
+   start its export task in the **Tasks** panel. The finished
+   `nasa_earth_layers_2015_2025.tif` appears in the `OtherworldAtlas` folder
+   in Google Drive. Download it to `data/earth_engine/`.
+
+The export uses only MODIS pixels whose QA mandatory bits 0–1 indicate good
+quality. It converts each stored MOD11A2 LST value with
+`Kelvin = DN × 0.02`, then `Celsius = Kelvin − 273.15`; day/night midpoint is
+`(mean day LST + mean night LST) / 2`. MOD11A2 is an 8-day clear-sky land
+surface-temperature composite; its value is not a continuous all-weather air
+temperature. NASADEM elevation is referenced to the EGM96 geoid. Its slope
+layer is Horn terrain slope calculated from the DEM aggregated to a 100 m
+baseline, then averaged into the 15 km cell. It is a regional terrain metric,
+not rover-scale traversability.
+
+Install the grid dependencies and prepare the TerraClimate/WorldClim fallback
+rasters:
 
 ```sh
 pip install -r requirements-grid.txt
 python -m scripts.prepare_terraclimate --year 2025
 ```
 
-The yearly means/sums are written as `temperature_2025.tif`,
-`precipitation_2025.tif`, and `pet_2025.tif`; elevation is static:
+Build the binary and metadata with:
 
 ```sh
 python -m scripts.build_grid \
@@ -82,121 +175,61 @@ python -m scripts.build_grid \
   --elevation data/processed/worldclim/wc2.1_2.5m_elev.tif \
   --precipitation data/processed/precipitation_2025.tif \
   --pet data/processed/pet_2025.tif \
-  --period "2025 calendar year" \
-  --citation "TerraClimate (2025), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191" \
-  --citation "WorldClim 2.1 elevation (2.5 arc-minute), Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html"
+  --nasa-grid data/earth_engine/nasa_earth_layers_2015_2025.tif \
+  --period "MODIS MOD11A2 v061 clear-QA day/night LST, 2015-2025; TerraClimate 2025 fallback" \
+  --citation "NASA/USGS/JPL NASADEM Merged DEM Global 1 arc-second V001, DOI:10.5067/MEaSUREs/NASADEM/NASADEM_HGT.001" \
+  --citation "NASA LP DAAC MODIS MOD11A2 V061, DOI:10.5067/MODIS/MOD11A2.061; 2015-2025 day/night LST, clear mandatory QA only" \
+  --citation "TerraClimate (2025), monthly climate fields, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191" \
+  --citation "WorldClim 2.1 elevation fallback (2.5 arc-minute); Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html"
 ```
 
-The input download is about 450 MB and is cached under `data/raw/`; raw and
-intermediate rasters are excluded from Git. Keep the generated grid binary
-and metadata together for local or static hosting. `assets/earth_grid.json`
-records the schema, source period, units, formulas, projection, land mask,
-and citations.
+If you omit `--nasa-grid`, the build remains the current TerraClimate /
+WorldClim-only grid. After rebuilding, inspect `assets/earth_grid.json`:
+`nasaLayerCoverage` reports how many land cells actually used NASA layers,
+and the temperature/elevation definitions describe the fallback behavior.
+Commit or deploy the rebuilt `earth_grid.bin` and `earth_grid.json` together.
 
-### Mars data and cross-planet limits
+## Validation and source data
 
-The current public global terrain source identified for Mars is the
-[MGS MOLA MEGDR PDS4 bundle](https://pds-geosciences.wustl.edu/missions/mgs/megdr.html).
-Its 4-pixel-per-degree product represents topography from MOLA observations
-made during 1997–2001. The PDS4 bundle was migrated/updated in 2026; that is
-not a new global surface survey. Mars topography is relative to a Mars areoid,
-so absolute Mars and Earth elevation values are not interchangeable. Earth
-temperature, pressure, radiation, dust, and regolith do not reproduce the
-Martian environment; they must not be described as equivalent.
+`assets/known_sites.csv` contains approximate coordinates and source links for
+11 named reference areas. Generate the validation report with:
 
-The shared spreadsheets include a 30-region Mars table and separate parameter
-dictionaries. The app preserves all supplied Mars row values and provides an
-optional region selector that copies the supplied temperature and elevation,
-plus MOLA-derived coarse slope, into numeric search targets. These raw
-cross-planet comparisons are not physical equivalences. Mars pressure,
-geology, dust, radiation, and all fields without a comparable Earth-grid layer
-remain reference-only and are excluded from the score. The sheets are
-project-provided reference material, not independently validated planetary
-measurements or a substitute for MOLA/PDS source products. Fields with no
-traceable observation, method, unit, period, and reuse rights must remain
-unscored.
+```sh
+node scripts/validate_known_sites.js
+```
 
-The source spreadsheets are preserved under `assets/source-data/`. Regenerate
-the app-ready Mars reference JSON (and refresh the small MOLA source image from
-PDS) with:
+The script selects the nearest source-covered tile, reports the percentile
+for one expected feature per site, and requires the tile center to be within
+one 15 km cell width of the approximate coordinate. It also runs ±20%
+one-at-a-time weight sensitivity checks against the default top 20. These are
+limited sanity checks—not independent validation of the dataset or ranking.
+The report is `assets/known_sites_validation.json`; feature-threshold misses
+and locations too far from a source-covered tile remain reported as failures.
+
+The Mars reference bundle is built from the project-supplied spreadsheet and
+public MOLA source data:
 
 ```sh
 python -m scripts.prepare_mars_reference
 ```
 
-The script validates the MOLA label's 720 × 1,440 shape and big-endian
-integer encoding before deriving center-pixel/latitude-band slope estimates.
-The source spreadsheet values remain intact alongside those derived fields;
-they are not silently substituted for the PDS measurements.
+The supplied Mars values have not been independently validated. MOLA's coarse
+source spacing differs from the Earth grid, so its slope is reference-only and
+is not copied into a scored target.
 
-Before commercial deployment, verify the redistribution rights of every
-source dataset and supplied 3D model, publish required attribution, and
-validate the grid and ranking against independent field/engineering data.
-This project is a research-screening prototype, not a flight, safety, or
-qualification tool.
+## Limits and reuse
 
-Serve the page over HTTP (for example with VS Code Live Server) rather than
-opening `index.html` as a `file://` URL. Browser workers and fetches require a
-local or hosted web origin.
+The rover panel is a screening aid. Regional slope and surface/air temperature do not
+measure wheel traction, obstacle geometry, thermal extremes, radiation,
+illumination, communications, dust behavior, hardware limits or failure
+probability. Use dedicated, mission-specific data and laboratory/field tests
+before engineering decisions.
 
-## Site pages and rover prototype
-
-The static site includes Home, Services, Guide, Analogs, Application, Rover
-Prototype, and Team pages. The analog catalog currently contains 12 starter
-references with illustrative profile values; it is not a vetted ranking.
-The rover page loads `assets/perseverance.glb` in the browser and lets users
-inspect a selected grid-search candidate against the available terrain or
-climate fields. Camera drag, orbit buttons and auto-spin control the model.
-The Rover Risk Management panel ranks the best overall grid match and lets
-users select another scan result for a specific analog review. It separates
-available environmental screening inputs from hardware and engineering
-factors that the grid cannot test. This is not ML; subsystem fit bars are
-screening illustrations, not qualification results or failure probabilities.
-No rover hardware tests are performed by the application. The prototype does
-not connect to rover hardware or flight software, and it does not yet provide
-image-based analog matching.
-
-The GLB was exported from the assembled Blender scene supplied for this
-project. To rebuild it, use Blender with its glTF 2.0 exporter enabled:
-
-```sh
-blender -b "/path/to/source.blend" \
-  --python scripts/export_rover.py -- \
-  --output assets/perseverance.glb
-```
-
-The exporter packs available textures and warns when it must substitute a
-neutral fallback for a missing texture. Confirm the original model's
-attribution and redistribution terms before republishing the model. The rover
-is a visual reference only; the export does not imply compatibility with a
-real rover or its software.
-
-The deployed browser search makes no data API calls. NASA POWER is suitable
-for point/site climatology, not millions of per-cell requests; NASA GIBS is
-for imagery layers, and AWS Terrain Tiles can provide elevation imagery or
-tiles for inspection. Neither should be queried for every grid cell at
-runtime. Download or prepare appropriately licensed global rasters locally,
-then install the requirements:
-
-```sh
-pip install -r requirements-grid.txt
-```
-
-Run the builder with your local raster paths; repeat `--citation` for each
-source, and set scale options where a source stores scaled integer values:
-
-```sh
-python -m scripts.build_grid \
-  --temperature /data/mean-temperature.tif \
-  --elevation /data/elevation.tif \
-  --precipitation /data/annual-precipitation.tif \
-  --pet /data/annual-pet.tif \
-  --citation "Dataset name, version, period, license, URL"
-```
-
-Keep both `assets/earth_grid.bin` and `assets/earth_grid.json` when deploying
-the site. Their citations are shown beside the global-grid search results. The
-raster files themselves are only needed for rebuilding the grid.
-=======
-# Astronautical-analog-finder
->>>>>>> analog-finder/main
+Before commercial deployment, confirm the applicable redistribution,
+attribution and commercial-use terms for every dataset and visual asset.
+NASA data are generally openly usable subject to NASA's data policy and
+product citation requirements; confirm each product's current terms. Earth
+Engine itself requires the project to be registered for the intended use.
+TerraClimate is CC0; WorldClim attribution is required and its applicable
+commercial terms should be confirmed. The app is not represented as a
+commercial-ready or safety-qualified product.

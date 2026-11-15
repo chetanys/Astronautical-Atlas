@@ -107,6 +107,82 @@ def build_grid(args: argparse.Namespace) -> tuple[np.ndarray, dict[str, int]]:
     with np.errstate(invalid="ignore", divide="ignore"):
         aridity = (1 - precipitation / pet).clip(0, 1) * 10
     slope = calculate_slope(elevation)
+    base_valid = (
+        np.isfinite(temperature)
+        & np.isfinite(elevation)
+        & np.isfinite(slope)
+        & np.isfinite(aridity)
+        & (pet > 0)
+    )
+    nasa_counts = {
+        "modisTemperatureCells": 0,
+        "nasademElevationCells": 0,
+        "nasademSlopeCells": 0,
+    }
+    if args.nasa_grid is not None:
+        with rasterio.open(args.nasa_grid) as nasa:
+            expected_transform = TRANSFORM
+            if (
+                nasa.crs is None
+                or nasa.crs.to_string() != CRS
+                or nasa.width != COLUMNS
+                or nasa.height != ROWS
+                or not np.allclose(
+                    tuple(nasa.transform)[:6],
+                    tuple(expected_transform)[:6],
+                    rtol=0,
+                    atol=1e-5,
+                )
+                or nasa.count < 4
+            ):
+                raise ValueError(
+                    "NASA layer export must be a four-band GeoTIFF aligned to "
+                    f"the {CELL_SIZE_METERS:,} m {CRS} grid "
+                    f"({COLUMNS} columns × {ROWS} rows)."
+                )
+            expected_bands = (
+                "modis_day_lst_c",
+                "modis_night_lst_c",
+                "nasadem_elevation_m",
+                "nasadem_slope_100m_deg",
+            )
+            if tuple(nasa.descriptions[:4]) != expected_bands:
+                raise ValueError(
+                    "NASA layer bands must be ordered and named: "
+                    + ", ".join(expected_bands)
+                    + ". Re-export with scripts/export_nasa_earth_layers.js."
+                )
+
+            bands = nasa.read((1, 2, 3, 4), masked=True, out_dtype="float32")
+            day_lst = bands[0]
+            night_lst = bands[1]
+            nasa_elevation = bands[2]
+            nasa_slope = bands[3]
+            valid_lst = (
+                ~np.ma.getmaskarray(day_lst)
+                & ~np.ma.getmaskarray(night_lst)
+                & np.isfinite(day_lst.data)
+                & np.isfinite(night_lst.data)
+            )
+            valid_elevation = (
+                ~np.ma.getmaskarray(nasa_elevation)
+                & np.isfinite(nasa_elevation.data)
+            )
+            valid_slope = (
+                ~np.ma.getmaskarray(nasa_slope)
+                & np.isfinite(nasa_slope.data)
+            )
+            temperature[valid_lst] = (
+                day_lst.data[valid_lst] + night_lst.data[valid_lst]
+            ) / 2
+            elevation[valid_elevation] = nasa_elevation.data[valid_elevation]
+            slope[valid_slope] = nasa_slope.data[valid_slope]
+            nasa_counts = {
+                "modisTemperatureCells": int((valid_lst & base_valid).sum()),
+                "nasademElevationCells": int((valid_elevation & base_valid).sum()),
+                "nasademSlopeCells": int((valid_slope & base_valid).sum()),
+            }
+
     valid = (
         np.isfinite(temperature)
         & np.isfinite(elevation)
@@ -145,6 +221,7 @@ def build_grid(args: argparse.Namespace) -> tuple[np.ndarray, dict[str, int]]:
         "validLandCells": int(valid.sum()),
         "candidateGridCells": int(ROWS * COLUMNS),
         "scoreScales": score_scales,
+        **nasa_counts,
     }
 
 
@@ -172,6 +249,15 @@ def main() -> None:
         type=Path,
         default=Path("assets/earth_grid.bin"),
         help="Output record file (default: assets/earth_grid.bin).",
+    )
+    parser.add_argument(
+        "--nasa-grid",
+        type=Path,
+        help=(
+            "Optional aligned four-band Earth Engine export: MODIS daytime LST "
+            "(°C), nighttime LST (°C), NASADEM elevation (m), and 100 m-baseline "
+            "slope (degrees)."
+        ),
     )
     parser.add_argument("--period", required=True, help="Source observation period.")
     parser.add_argument(
@@ -217,12 +303,47 @@ def main() -> None:
             "90% observed data spread (95th minus 5th percentile)."
         ),
         "sourcePeriod": args.period,
-        "landMask": "Valid WorldClim elevation cells; ocean/no-data cells omitted.",
+        "temperatureDefinition": (
+            "MODIS MOD11A2 v061 clear-QA day/night LST midpoint in °C where "
+            "available; otherwise TerraClimate annual mean air temperature. "
+            "This is a mixed surface/air temperature field and must not be "
+            "interpreted as a uniform physical measurement."
+            if args.nasa_grid is not None
+            else "TerraClimate annual mean air temperature in °C."
+        ),
+        "elevationDefinition": (
+            "NASADEM v001 elevation (EGM96 geoid) where available; otherwise "
+            "the existing WorldClim 2.1 elevation input."
+            if args.nasa_grid is not None
+            else "WorldClim 2.1 elevation."
+        ),
+        "landMask": "Valid cells with complete temperature, elevation, slope and aridity inputs; ocean/no-data cells omitted.",
         "aridityFormula": "10 * clamp(1 - annual precipitation / annual PET, 0, 1)",
         "slopeMethod": (
-            "Derived from elevation regridded to 15 km; local equal-area map-scale "
-            "factors corrected by latitude. Regional screening only."
+            (
+                "Earth Engine NASADEM v001 elevation aggregated to a 100 m grid, "
+                "slope derived with the Horn method, then averaged into 15 km cells; "
+                "WorldClim-derived 15 km slope is retained where NASADEM is absent."
+                if args.nasa_grid is not None
+                else "Derived from elevation regridded to 15 km; local equal-area map-scale "
+                "factors corrected by latitude. Regional screening only."
+            )
         ),
+        "nasaLayerCoverage": {
+            "modisTemperatureCells": counts["modisTemperatureCells"],
+            "nasademElevationCells": counts["nasademElevationCells"],
+            "nasademSlopeCells": counts["nasademSlopeCells"],
+            "totalSourceCoveredCells": counts["validLandCells"],
+            "fallbacks": (
+                {
+                    "temperature": "TerraClimate 2025 annual mean air temperature",
+                    "elevation": "WorldClim 2.1 elevation",
+                    "slope": "WorldClim-derived 15 km slope",
+                }
+                if args.nasa_grid is not None
+                else None
+            ),
+        },
         "inputBands": {
             "temperature": {"band": args.temperature_band, "scale": args.temperature_scale},
             "elevation": {"band": args.elevation_band, "scale": args.elevation_scale},

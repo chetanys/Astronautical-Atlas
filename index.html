@@ -56,7 +56,7 @@
           </button>
         </div>
         <div class="hero-proof">
-          <span><b>~575,000</b> source-covered land tiles</span>
+          <span><b>575,482</b> source-covered land tiles</span>
           <span><b>0</b> server-side scans</span>
           <span><b>2</b> worlds to explore</span>
         </div>
@@ -78,13 +78,13 @@
       <button class="path-card" type="button" data-page="roverView">
         <span class="path-number">02 / PROTOTYPE</span>
         <strong>Explore a rover sandbox</strong>
-        <span>Inspect the Perseverance reference model and review an illustrative subsystem gap report.</span>
+        <span>Inspect the Perseverance visual reference and see which environment inputs the current grid can and cannot support.</span>
         <b>OPEN ROVER SANDBOX →</b>
       </button>
       <button class="path-card" type="button" data-page="analogsView">
         <span class="path-number">03 / CATALOG</span>
         <strong>Understand the analogs</strong>
-        <span>Explore the current reference catalog, scoring method, data sources and important limitations.</span>
+        <span>View data-ranked grid candidates after a scan, plus the scoring method, validation checks and limitations.</span>
         <b>VIEW CATALOG →</b>
       </button>
     </section>
@@ -107,7 +107,7 @@
     <section class="service-grid">
       <article class="feature-card"><span>01</span><h2>Requirement-led search</h2><p>Choose environmental targets and scan a land-only, approximately 15 km equal-area grid for ranked cells. Results are computed in a browser Web Worker.</p></article>
       <article class="feature-card"><span>02</span><h2>Map-first inspection</h2><p>Review candidate coordinates on a 3D Earth and open locations in a map for further terrain inspection.</p></article>
-      <article class="feature-card"><span>03</span><h2>Rover sandbox <i>prototype</i></h2><p>Use a visual rover reference and an explicitly illustrative subsystem report to explore which stresses still require physical testing.</p></article>
+      <article class="feature-card"><span>03</span><h2>Rover sandbox <i>prototype</i></h2><p>Use the rover visual reference to review which environmental inputs the current grid supports and which still require engineering tests.</p></article>
       <article class="feature-card"><span>04</span><h2>Source-aware results</h2><p>Climate, elevation, grid resolution, formulas and data limitations are shown so users can judge what a match does—and does not—mean.</p></article>
     </section>
     <section class="service-cta">
@@ -126,8 +126,8 @@
     <section class="guide-steps">
       <article><b>01</b><div><h2>Choose Moon or Mars</h2><p>This sets the exploration context. It does not imply Earth can reproduce the full off-world environment.</p></div></article>
       <article><b>02</b><div><h2>Set the conditions you care about</h2><p>Adjust mean temperature, elevation, slope and aridity. These are target values for a similarity search, not hard safety constraints.</p></div></article>
-      <article><b>03</b><div><h2>Scan the land grid</h2><p>A background worker scores roughly 600,000 land tiles at approximately 15 km equal-area resolution and returns the best candidates without blocking the interface.</p></div></article>
-      <article><b>04</b><div><h2>Inspect candidate locations</h2><p>Choose a ranked result or globe marker to focus the map. A 0.25° cell is broad regional context—not a rover traversability map.</p></div></article>
+      <article><b>03</b><div><h2>Scan the land grid</h2><p>A background worker scores 575,482 source-covered land cells at approximately 15 km equal-area resolution and returns the 20 best candidates without blocking the interface.</p></div></article>
+      <article><b>04</b><div><h2>Inspect candidate locations</h2><p>Choose a ranked result or globe marker to focus the map. A 15 km cell is broad regional context—not a rover traversability map.</p></div></article>
       <article><b>05</b><div><h2>Plan the missing tests</h2><p>Use the rover sandbox as a discussion aid. Confirm wheel traction, dust, thermal-vacuum, power and communications behavior with dedicated test rigs and validated data.</p></div></article>
     </section>
     <button class="btn-mission" type="button" data-page="atlasView">START EXPLORING</button>
@@ -137,17 +137,32 @@
     <section class="page-heading">
       <small class="eyebrow">CANDIDATES, NOT CERTIFICATIONS</small>
       <h1>Earth analog catalog.</h1>
-      <p>Search results are generated from your chosen requirements. Named places below are a separate starter reference catalog and are not the source of the global grid.</p>
+      <p>These are the 20 best-scoring grid cells for your most recent search, recalculated from measured grid fields—not a preset list of named sites.</p>
     </section>
     <div class="catalog-notice">
-      <strong>Catalog status: starter reference set</strong>
-      <p>These 12 named locations are useful examples to investigate, but their embedded profile values are illustrative. They are not yet a verified, source-normalized ranking of the “best” 20–30 sites.</p>
+      <strong>Data-ranked candidates · not named analog sites</strong>
+      <p>The supplied Earth spreadsheet contains 98 parameter definitions, not a list of measured site records. Candidate cells use the current 15 km Earth grid. Their rank is a screening result, not a site validation or mission recommendation.</p>
     </div>
     <div id="analogsCatalog" class="analogs-grid"></div>
+    <section class="formula-card">
+      <small class="eyebrow">EMPIRICAL CHECKS · APPROXIMATE COORDINATES</small>
+      <h2>Known-site validation against the current Earth grid</h2>
+      <p>These checks compare one expected feature against the 575,482-cell grid and require the nearest source-covered tile center to be within one 15 km cell width. Approximate coordinates farther away are marked TOO FAR, not counted as passes. Even a pass is a limited sanity check, not independent validation of a site or source dataset.</p>
+      <p id="knownSitesStatus" role="status" aria-live="polite">Loading validation results…</p>
+      <div class="mars-table-wrap">
+        <table class="risk-review-table">
+          <thead><tr><th scope="col">SITE</th><th scope="col">FEATURE / DIRECTION</th><th scope="col">GRID VALUE</th><th scope="col">GRID TOP PERCENT</th><th scope="col">TEST</th><th scope="col">NEAREST TILE DISTANCE</th><th scope="col">COORDINATE SOURCE</th></tr></thead>
+          <tbody id="knownSitesRows"></tbody>
+        </table>
+      </div>
+      <p id="weightSensitivityStatus"></p>
+      <a href="./assets/known_sites.csv" download>Download the known-site validation inputs ↧</a>
+      <a href="./assets/known_sites_validation.json" download>Download the full validation and weight-sensitivity report ↧</a>
+    </section>
     <section class="formula-card mars-source-card">
       <small class="eyebrow">MARS SOURCE DATA · 30 REGIONS</small>
       <h2>Mars reference regions and MOLA terrain context</h2>
-      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Selecting a region copies available temperature, elevation and MOLA slope numbers into the weighted search matrix. This is raw numeric screening only: planetary environments, datums and measurement methods are not equivalent.</p>
+      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Temperature and elevation may be copied as raw numeric targets, but Earth and Mars datums and environments are not equivalent. The MOLA slope estimate is reference-only: its 0.25° source pixels have an approximately 27.8 km north-south spacing, unlike the Earth grid's 15 km slope baseline.</p>
       <p id="marsDataStatus" role="status" aria-live="polite">Loading Mars source data…</p>
       <p>Spreadsheet values are project-provided; the project owner confirms redistribution rights. Scientific accuracy and original methods still require independent review.</p>
       <div class="mars-table-wrap">
@@ -187,6 +202,20 @@
           </table>
         </div>
       </details>
+    </section>
+    <section class="formula-card">
+      <small class="eyebrow">NASA ARTEMIS III · UPDATED CANDIDATES</small>
+      <h2>Nine lunar south-pole candidate regions</h2>
+      <p>NASA's October 28, 2024 release lists these regions in no priority order. These are candidate areas, not selected landing sites. NASA's public release gives no machine-readable coordinates or boundaries, so this app does not invent per-region measurements.</p>
+      <ol>
+        <li>Peak near Cabeus B</li><li>Haworth</li><li>Malapert Massif</li>
+        <li>Mons Mouton Plateau</li><li>Mons Mouton</li><li>Nobile Rim 1</li>
+        <li>Nobile Rim 2</li><li>de Gerlache Rim 2</li><li>Slater Plain</li>
+      </ol>
+      <p>Moon mode currently has no NASA lunar raster in the active search. The supplied lunar spreadsheet is a parameter dictionary, not measured regional observations.</p>
+      <a href="https://www.nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/" target="_blank" rel="noopener noreferrer">NASA's 2024 candidate-region update ↗</a>
+      <a href="https://pgda.gsfc.nasa.gov/products/90" target="_blank" rel="noopener noreferrer">NASA PGDA LOLA South Pole terrain product 90 ↗</a>
+      <a href="https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_pcp/" target="_blank" rel="noopener noreferrer">Diviner PDS Polar Cumulative Products ↗</a>
     </section>
     <section class="formula-card">
       <small class="eyebrow">GRID SCORING</small>
@@ -297,7 +326,7 @@
           <div class="risk-review-table-wrap">
             <table class="risk-review-table">
               <thead>
-                <tr><th scope="col">ROVER SYSTEM</th><th scope="col">AVAILABLE GRID SCREENING</th><th scope="col">NOT TESTED / NOT IN DATA</th></tr>
+                <tr><th scope="col">ROVER SYSTEM</th><th scope="col">GRID SCREENING / NASA MISSION REFERENCE</th><th scope="col">LIMITS / NOT MEASURED</th></tr>
               </thead>
               <tbody id="riskReviewRows"></tbody>
             </table>
@@ -314,7 +343,7 @@
         <article class="subsystem-report">
           <small id="subsystemLabel" class="eyebrow">MOBILITY · WHEELS</small>
           <h2 id="subsystemTitle">Terrain screening gap</h2>
-          <div class="coverage-heading"><span>SCREENING COVERAGE</span><strong id="coverageValue">--</strong></div>
+          <div class="coverage-heading"><span>DIRECT INPUT COVERAGE</span><strong id="coverageValue">Loading grid metadata</strong></div>
           <div class="coverage-track"><span id="coverageBar"></span></div>
           <dl id="subsystemMetrics" class="subsystem-metrics"></dl>
           <p id="subsystemCaveat" class="subsystem-caveat">Run a grid search and select a candidate. The report will clearly flag fields the current dataset cannot support.</p>
@@ -366,17 +395,17 @@
           </select>
           <p id="marsReferenceStatus" class="mars-reference-status" role="status"
             aria-live="polite">
-            Mars slope is compared as regional terrain context only.
+            Mars slope is reference-only and is not copied into the scored target.
           </p>
         </div>
         <label class="grid-control" for="gridTemperature">
-          <span>MEAN TEMPERATURE</span>
+          <span id="gridTemperatureLabel">MEAN AIR TEMPERATURE</span>
           <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
         </label>
         <input class="range" id="gridTemperature" type="range"
           min="-120" max="50" step="1" value="-10">
         <label class="grid-control" for="gridElevation">
-          <span>ELEVATION</span>
+          <span id="gridElevationLabel">ELEVATION</span>
           <output id="gridElevationValue" for="gridElevation">1,800 m</output>
         </label>
         <input class="range" id="gridElevation" type="range"
@@ -400,10 +429,10 @@
             <table class="risk-review-table">
               <thead><tr><th scope="col">PARAMETER</th><th scope="col">TARGET</th><th scope="col">WEIGHT</th><th scope="col">EARTH GRID DATA</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Mean temperature</th><td id="matrixTemperatureTarget">−10 °C</td><td><label class="weight-control" for="weightTemperature"><input id="weightTemperature" type="range" min="0" max="5" step="0.5" value="1"><output id="weightTemperatureValue">1×</output></label></td><td>Available · 2025 annual</td></tr>
-                <tr><th scope="row">Elevation</th><td id="matrixElevationTarget">1,800 m</td><td><label class="weight-control" for="weightElevation"><input id="weightElevation" type="range" min="0" max="5" step="0.5" value="1"><output id="weightElevationValue">1×</output></label></td><td>Available · static</td></tr>
-                <tr><th scope="row">Slope</th><td id="matrixSlopeTarget">15°</td><td><label class="weight-control" for="weightSlope"><input id="weightSlope" type="range" min="0" max="5" step="0.5" value="1"><output id="weightSlopeValue">1×</output></label></td><td>Available · 15 km estimate</td></tr>
-                <tr><th scope="row">Aridity</th><td id="matrixAridityTarget">8 / 10</td><td><label class="weight-control" for="weightAridity"><input id="weightAridity" type="range" min="0" max="5" step="0.5" value="1"><output id="weightAridityValue">1×</output></label></td><td>Available · derived proxy</td></tr>
+                <tr><th scope="row">Temperature target</th><td id="matrixTemperatureTarget">−10 °C</td><td><label class="weight-control" for="weightTemperature"><input id="weightTemperature" type="range" min="0" max="5" step="0.5" value="1"><output id="weightTemperatureValue">1×</output></label></td><td id="matrixTemperatureSource">Source depends on built grid; see source metadata</td></tr>
+                <tr><th scope="row">Elevation</th><td id="matrixElevationTarget">1,800 m</td><td><label class="weight-control" for="weightElevation"><input id="weightElevation" type="range" min="0" max="5" step="0.5" value="1"><output id="weightElevationValue">1×</output></label></td><td id="matrixElevationSource">Source depends on built grid; see source metadata</td></tr>
+                <tr><th scope="row">Slope</th><td id="matrixSlopeTarget">15°</td><td><label class="weight-control" for="weightSlope"><input id="weightSlope" type="range" min="0" max="5" step="0.5" value="1"><output id="weightSlopeValue">1×</output></label></td><td id="matrixSlopeSource">Method depends on built grid; see source metadata</td></tr>
+                <tr><th scope="row">Aridity</th><td id="matrixAridityTarget">8 / 10</td><td><label class="weight-control" for="weightAridity"><input id="weightAridity" type="range" min="0" max="5" step="0.5" value="1"><output id="weightAridityValue">1×</output></label></td><td>TerraClimate-derived water-balance proxy</td></tr>
               </tbody>
             </table>
           </div>
@@ -418,6 +447,40 @@
         </p>
         <ol id="gridResults" class="grid-results"
           aria-label="Best matching global grid cells"></ol>
+        <div class="grid-data-actions">
+          <button id="exportTopSites" class="secondary-action" type="button" disabled>
+            EXPORT TOP 10 SITES JSON
+          </button>
+        </div>
+        <section id="gridClimatePanel" class="grid-climate-panel" aria-labelledby="gridClimateHeading">
+          <small class="eyebrow">NASA POWER · LIVE ON CLICK</small>
+          <h3 id="gridClimateHeading">Select a grid candidate</h3>
+          <p id="gridPowerStatus" class="grid-climate-status" role="status" aria-live="polite">
+            Live climatology will load when you select a candidate.
+          </p>
+          <div id="gridPowerMetrics" class="grid-power-metrics hidden"></div>
+          <button id="retryGridPower" class="secondary-action hidden" type="button">
+            RETRY NASA POWER
+          </button>
+          <small class="eyebrow">MODIS MOD11A2 · ORNL DAAC · LIVE SAMPLE</small>
+          <p id="gridModisStatus" class="grid-climate-status" role="status" aria-live="polite">
+            Select a cell to request a live sample from two 2023 seasonal windows.
+          </p>
+          <p class="grid-climate-status">
+            Sampled around the cell center; not a 15 km tile mean. Context only,
+            and does not change ranking.
+          </p>
+          <div id="gridModisMetrics" class="grid-power-metrics hidden"></div>
+          <button id="retryGridModis" class="secondary-action hidden" type="button">
+            RETRY LIVE MODIS
+          </button>
+          <p id="topTenModisStatus" class="grid-climate-status">
+            Top-ten MODIS requests are opt-in: four requests per selected cell.
+          </p>
+          <button id="loadTopTenModis" class="secondary-action" type="button" disabled>
+            LOAD MODIS FOR TOP 10
+          </button>
+        </section>
         <p id="gridSourceDetails" class="grid-source">
           Grid source citations will appear here when the data loads.
         </p>
@@ -433,6 +496,12 @@
             <li><a href="https://pds-geosciences.wustl.edu/missions/mgs/megdr.html" target="_blank" rel="noopener noreferrer">MOLA archive, product description and resolution options</a></li>
             <li><a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations</a></li>
             <li><a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 dataset and citation</a></li>
+            <li><a href="https://developers.google.com/earth-engine/datasets/catalog/NASA_NASADEM_HGT_001" target="_blank" rel="noopener noreferrer">NASADEM HGT v001 catalog · verified, not active in this grid</a></li>
+            <li><a href="https://developers.google.com/earth-engine/datasets/catalog/MODIS_061_MOD11A2" target="_blank" rel="noopener noreferrer">MODIS MOD11A2 v061 catalog · verified, not active in this grid</a></li>
+            <li><a href="https://appeears.earthdatacloud.nasa.gov/api/product/NASADEM_NC.001" target="_blank" rel="noopener noreferrer">AppEEARS API catalog · NASADEM_NC.001 / NASADEM_HGT</a></li>
+            <li><a href="https://appeears.earthdatacloud.nasa.gov/api/product/MOD11A2.061" target="_blank" rel="noopener noreferrer">AppEEARS API catalog · MOD11A2.061 LST and QC layers</a></li>
+            <li><a href="https://power.larc.nasa.gov/docs/services/api/temporal/climatology/" target="_blank" rel="noopener noreferrer">NASA POWER climatology API · live point lookups</a></li>
+            <li><a href="https://modis.ornl.gov/rst/ui/" target="_blank" rel="noopener noreferrer">ORNL DAAC MODIS/VIIRS Subsets API · MOD11A2</a></li>
           </ul>
         </details>
       </section>
@@ -505,42 +574,10 @@
         </p>
       </section>
 
-      <div class="section-heading">
-        ENVIRONMENTAL FILTERS
-        <button id="resetBtn" class="link-btn">RESET</button>
-      </div>
-      <p class="hint">
-        These filters compare only the optional curated reference catalog.
-        Use the global grid search above to discover new locations.
-      </p>
-
-      <div id="filters"></div>
-
-      <div class="section-heading layers-heading">CURATED REFERENCE CATALOG</div>
-
-      <label class="layer">
-        <span><i class="dot terrain"></i> Match terrain reference sites</span>
-        <input type="checkbox" id="terrainToggle">
-      </label>
-
-      <label class="layer">
-        <span><i class="dot climate"></i> Match climate reference sites</span>
-        <input type="checkbox" id="climateToggle">
-      </label>
-
-      <div class="match-box">
-        <div class="match-heading">
-          OPTIONAL REFERENCE MATCHES
-          <strong id="siteCount">12</strong>
-        </div>
-        <div class="progress"><div id="progressBar"></div></div>
-        <p id="matchSummary">Enable a reference catalog to compare named sites.</p>
-      </div>
-
-      <p class="disclaimer">
-        Grid results are relative matches for your selected inputs using a
-        1991 climate snapshot and coarse terrain estimates—not verified
-        planetary analogs, rover-scale slope checks, or mission-planning data.
+      <p id="gridDataDisclaimer" class="disclaimer">
+        The checked-in grid uses TerraClimate 2025 climate plus WorldClim 2.1
+        elevation. Rebuild with the documented NASA export to add NASA layers.
+        Results are screening candidates, not verified analogs or mission-planning data.
       </p>
     </aside>
 
@@ -549,12 +586,6 @@
         <div class="map-title">
           <small class="eyebrow">LIVE SEARCH OUTPUT</small>
           <strong>USER-REQUESTED GRID MATCHES</strong>
-          <label class="site-picker">
-            <span>REFERENCE SITE LOOKUP</span>
-            <select id="sitePicker" aria-label="Open an analog site profile">
-              <option value="">Choose a site...</option>
-            </select>
-          </label>
         </div>
 
         <div class="map-buttons">
@@ -568,7 +599,7 @@
         id="map"
         src="./assets/earth.glb"
         poster="https://solarsystem.nasa.gov/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBaThSIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--7d74b9a474270365fe6127b548c73ae030610e20/poster_earth.jpg"
-        alt="NASA 3D model of Earth with clickable planetary analog sites"
+        alt="NASA 3D model of Earth with ranked grid candidate markers"
         background-color="#05070d"
         camera-controls
         camera-orbit="0deg 75deg 1500m"
@@ -602,48 +633,8 @@
 
       <div class="legend">
         <span><i class="legend-dot green"></i> Best scan match</span>
-        <span><i class="legend-dot yellow"></i> Other top-10 matches</span>
+        <span><i class="legend-dot yellow"></i> Other top-20 matches</span>
       </div>
-
-      <article id="siteCard" class="site-card hidden">
-        <button id="closeCard" class="close-btn" aria-label="Close">×</button>
-        <small id="siteType" class="eyebrow">ANALOG SITE</small>
-        <h2 id="siteName">Location</h2>
-        <p id="siteLocation" class="muted"></p>
-
-        <div class="score-heading">
-          CONDITION MATCH <strong id="siteScore">--%</strong>
-        </div>
-        <div class="progress"><div id="siteProgress"></div></div>
-
-        <p id="siteDescription" class="description"></p>
-        <div id="siteMetrics" class="metrics"></div>
-        <button id="exportSite" class="export-btn btn-mission" type="button">
-          EXPORT SITE JSON
-        </button>
-
-        <section class="climate-section" aria-labelledby="climateHeading">
-          <div class="climate-heading">
-            <small id="climateHeading" class="eyebrow">NASA POWER · LONG-TERM CLIMATOLOGY</small>
-            <button id="refreshClimate" class="link-btn hidden" type="button">
-              RETRY
-            </button>
-          </div>
-          <p id="climateStatus" role="status" aria-live="polite">
-            Select a site to load its climate data.
-          </p>
-          <div id="climateMetrics" class="metrics hidden"></div>
-          <div id="climateChart" class="climate-chart hidden"></div>
-          <a
-            class="climate-source"
-            href="https://power.larc.nasa.gov/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >NASA POWER DATA ↗</a>
-        </section>
-
-        <p class="card-footer">ILLUSTRATIVE SITE PROFILE</p>
-      </article>
 
       <div id="gridMapTip" class="map-tip">
         ⓘ Run a scan to place its top matches on the globe.

@@ -1952,6 +1952,17 @@ body[data-mode="mars"] .mode.btn-mission.active:hover {
 .test-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .test-chips span { padding: 6px; border: 1px solid #554b2f; color: #e5d6ab; font: 7px "DM Mono", monospace; }
 .test-plan p { margin: 9px 0 0; color: var(--muted); font: 7px/1.6 "DM Mono", monospace; }
+.grid-data-actions { margin: 8px 0; }
+.grid-data-actions .secondary-action { width: 100%; }
+.grid-climate-panel { margin: 12px 0; padding: 13px; border: 1px solid #244359; background: rgba(8, 17, 26, .88); }
+.grid-climate-panel h3 { margin: 6px 0; color: var(--text); font: 600 13px/1.5 "DM Mono", monospace; }
+.grid-climate-status,
+.grid-result-source { margin: 7px 0; color: var(--muted); font: 10px/1.6 "DM Mono", monospace; }
+.grid-power-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 10px 0; }
+.grid-power-metric { min-width: 0; padding: 8px; border: 1px solid #243b4c; background: #0a141e; }
+.grid-power-metric span { display: block; color: var(--muted); font: 8px/1.5 "DM Mono", monospace; }
+.grid-power-metric b { color: var(--cyan); font: 11px/1.5 "DM Mono", monospace; }
+.grid-result-source { margin: 2px 8px 8px; overflow-wrap: anywhere; }
 
 @media (max-width: 1000px) {
   .topbar { justify-content: center; }

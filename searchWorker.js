@@ -1,5 +1,5 @@
 const VALUES_PER_RECORD = 6;
-const RESULT_LIMIT = 10;
+const RESULT_LIMIT = 20;
 const FIELD_OFFSETS = {
   temperature: 2,
   elevation: 3,
@@ -69,7 +69,12 @@ async function loadGrid() {
     resolutionMeters: metadata.cellSizeMeters,
     sourcePeriod: metadata.sourcePeriod,
     latitudeCoverage: metadata.latitudeCoverage,
-    citations: metadata.citations
+    scoreScales: metadata.scoreScales,
+    citations: metadata.citations,
+    temperatureDefinition: metadata.temperatureDefinition,
+    elevationDefinition: metadata.elevationDefinition,
+    slopeMethod: metadata.slopeMethod,
+    nasaLayerCoverage: metadata.nasaLayerCoverage
   });
 }
 

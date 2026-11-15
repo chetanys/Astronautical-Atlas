@@ -1,0 +1,383 @@
+{
+  "generatedAt": "2026-11-15T02:54:27.688Z",
+  "earthGrid": {
+    "pointCount": 575482,
+    "cellSizeMeters": 15000,
+    "sourcePeriod": "2025 calendar-year climate; static elevation",
+    "citations": [
+      "TerraClimate (2025), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191; direct archive files validated 2026-11-14",
+      "WorldClim 2.1 elevation (2.5 arc-minute), SRTM-derived; Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html; attribution required, commercial redistribution terms to confirm"
+    ]
+  },
+  "method": {
+    "coordinateSampling": "Nearest source-covered tile to approximate supplied coordinates; haversine distance.",
+    "percentile": "Empirical percentile over every source-covered Earth grid tile for the selected feature.",
+    "passThreshold": "Expected-direction feature lies in its top 5% of the current grid distribution and the nearest tile center is within one cell width.",
+    "coordinateThreshold": "Nearest tile center is at most 15 km from the approximate coordinate.",
+    "scoreSensitivity": "Hold default targets constant; perturb each individual field weight from 1.0 to 0.8 and 1.2, then compare top-20 tile identity with the unperturbed result."
+  },
+  "validation": [
+    {
+      "name": "Atacama Desert (Yungay)",
+      "latitude": "-24.1",
+      "longitude": "-70.0",
+      "validation_feature": "aridity",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Atacama_Desert",
+      "nearestTile": {
+        "latitude": -24.086219787597656,
+        "longitude": -70.01026916503906,
+        "distanceKm": 1.853244255442894,
+        "temperatureC": 17.21104621887207,
+        "elevationM": 1224.2908935546875,
+        "slopeDegrees": 0.44478216767311096,
+        "aridity0To10": 9.996201515197754
+      },
+      "test": {
+        "feature": "aridity",
+        "direction": "high",
+        "percentile": 99.64429817092454,
+        "topPercent": 0.355701829075457,
+        "passesTopFivePercent": true,
+        "coordinateWithinOneCell": true,
+        "passesValidation": true
+      }
+    },
+    {
+      "name": "McMurdo Dry Valleys",
+      "latitude": "-77.5",
+      "longitude": "161.5",
+      "validation_feature": "temperature",
+      "direction": "low",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/McMurdo_Dry_Valleys",
+      "nearestTile": {
+        "latitude": -76.58831787109375,
+        "longitude": 161.47341918945312,
+        "distanceKm": 101.37659059246006,
+        "temperatureC": -20.12911033630371,
+        "elevationM": 1059.013916015625,
+        "slopeDegrees": 1.1007652282714844,
+        "aridity0To10": 0
+      },
+      "test": {
+        "feature": "temperature",
+        "direction": "low",
+        "percentile": 0.028845385259660596,
+        "topPercent": 0.028845385259660596,
+        "passesTopFivePercent": true,
+        "coordinateWithinOneCell": false,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Haughton impact crater",
+      "latitude": "75.4",
+      "longitude": "-89.7",
+      "validation_feature": "temperature",
+      "direction": "low",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Haughton_impact_crater",
+      "nearestTile": {
+        "latitude": 75.60456848144531,
+        "longitude": -90.22039794921875,
+        "distanceKm": 26.96779913138881,
+        "temperatureC": -14.218512535095215,
+        "elevationM": 164.69561767578125,
+        "slopeDegrees": 0.35940566658973694,
+        "aridity0To10": 0
+      },
+      "test": {
+        "feature": "temperature",
+        "direction": "low",
+        "percentile": 0.4886338756034072,
+        "topPercent": 0.4886338756034072,
+        "passesTopFivePercent": true,
+        "coordinateWithinOneCell": false,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Mauna Kea",
+      "latitude": "19.8",
+      "longitude": "-155.5",
+      "validation_feature": "elevation",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Mauna_Kea",
+      "nearestTile": {
+        "latitude": 19.779094696044922,
+        "longitude": -155.5146484375,
+        "distanceKm": 2.7843443670439116,
+        "temperatureC": 12.110739707946777,
+        "elevationM": 2418.26953125,
+        "slopeDegrees": 1.1968224048614502,
+        "aridity0To10": 5.400358200073242
+      },
+      "test": {
+        "feature": "elevation",
+        "direction": "high",
+        "percentile": 95.91924682266344,
+        "topPercent": 4.080753177336561,
+        "passesTopFivePercent": true,
+        "coordinateWithinOneCell": true,
+        "passesValidation": true
+      }
+    },
+    {
+      "name": "Askja",
+      "latitude": "65.0",
+      "longitude": "-16.8",
+      "validation_feature": "slope",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Askja",
+      "nearestTile": {
+        "latitude": 64.92212677001953,
+        "longitude": -16.84208869934082,
+        "distanceKm": 8.882766480212917,
+        "temperatureC": 2.1363508701324463,
+        "elevationM": 870.6419677734375,
+        "slopeDegrees": 0.7589712738990784,
+        "aridity0To10": 0
+      },
+      "test": {
+        "feature": "slope",
+        "direction": "high",
+        "percentile": 88.92250322338492,
+        "topPercent": 11.077496776615078,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": true,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Dallol",
+      "latitude": "14.2",
+      "longitude": "40.3",
+      "validation_feature": "temperature",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Dallol",
+      "nearestTile": {
+        "latitude": 14.250062942504883,
+        "longitude": 40.36811828613281,
+        "distanceKm": 9.213902031578066,
+        "temperatureC": 28.911285400390625,
+        "elevationM": -112.88935852050781,
+        "slopeDegrees": 0.24368277192115784,
+        "aridity0To10": 9.202523231506348
+      },
+      "test": {
+        "feature": "temperature",
+        "direction": "high",
+        "percentile": 95.27039942170215,
+        "topPercent": 4.729600578297848,
+        "passesTopFivePercent": true,
+        "coordinateWithinOneCell": true,
+        "passesValidation": true
+      }
+    },
+    {
+      "name": "Mars Desert Research Station",
+      "latitude": "38.4",
+      "longitude": "-110.8",
+      "validation_feature": "aridity",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Mars_Desert_Research_Station",
+      "nearestTile": {
+        "latitude": 38.36686706542969,
+        "longitude": -110.74144744873047,
+        "distanceKm": 6.294453965488968,
+        "temperatureC": 14.495762825012207,
+        "elevationM": 1406.4033203125,
+        "slopeDegrees": 0.39381474256515503,
+        "aridity0To10": 9.341026306152344
+      },
+      "test": {
+        "feature": "aridity",
+        "direction": "high",
+        "percentile": 85.67287942976496,
+        "topPercent": 14.327120570235039,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": true,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Meteor Crater",
+      "latitude": "35.0",
+      "longitude": "-111.0",
+      "validation_feature": "slope",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Meteor_Crater",
+      "nearestTile": {
+        "latitude": 35.01006317138672,
+        "longitude": -111.05237579345703,
+        "distanceKm": 4.899864393059344,
+        "temperatureC": 14.430781364440918,
+        "elevationM": 1704.474609375,
+        "slopeDegrees": 0.6632001996040344,
+        "aridity0To10": 8.123645782470703
+      },
+      "test": {
+        "feature": "slope",
+        "direction": "high",
+        "percentile": 86.67377954479898,
+        "topPercent": 13.326220455201025,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": true,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Lanzarote",
+      "latitude": "29.0",
+      "longitude": "-13.6",
+      "validation_feature": "aridity",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Lanzarote",
+      "nearestTile": {
+        "latitude": 27.865446090698242,
+        "longitude": -12.800063133239746,
+        "distanceKm": 148.43654418277907,
+        "temperatureC": 21.432035446166992,
+        "elevationM": 15.214569091796875,
+        "slopeDegrees": 0.04894000291824341,
+        "aridity0To10": 9.8793306350708
+      },
+      "test": {
+        "feature": "aridity",
+        "direction": "high",
+        "percentile": 94.15446530039168,
+        "topPercent": 5.845534699608322,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": false,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Teide",
+      "latitude": "28.3",
+      "longitude": "-16.6",
+      "validation_feature": "elevation",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Teide",
+      "nearestTile": {
+        "latitude": 28.26400375366211,
+        "longitude": -16.53116226196289,
+        "distanceKm": 7.839480785218293,
+        "temperatureC": 14.934835433959961,
+        "elevationM": 1357.946044921875,
+        "slopeDegrees": 1.8341245651245117,
+        "aridity0To10": 7.638978958129883
+      },
+      "test": {
+        "feature": "elevation",
+        "direction": "high",
+        "percentile": 88.12074052707122,
+        "topPercent": 11.87925947292878,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": true,
+        "passesValidation": false
+      }
+    },
+    {
+      "name": "Death Valley",
+      "latitude": "36.2",
+      "longitude": "-116.8",
+      "validation_feature": "temperature",
+      "direction": "high",
+      "coordinate_status": "approximate",
+      "source_url": "https://en.wikipedia.org/wiki/Death_Valley",
+      "nearestTile": {
+        "latitude": 36.16149139404297,
+        "longitude": -116.80448913574219,
+        "distanceKm": 4.300875572199501,
+        "temperatureC": 24.04020881652832,
+        "elevationM": 192.8946075439453,
+        "slopeDegrees": 0.5906928777694702,
+        "aridity0To10": 9.597208023071289
+      },
+      "test": {
+        "feature": "temperature",
+        "direction": "high",
+        "percentile": 66.54421858546401,
+        "topPercent": 33.45578141453599,
+        "passesTopFivePercent": false,
+        "coordinateWithinOneCell": true,
+        "passesValidation": false
+      }
+    }
+  ],
+  "weightSensitivity": {
+    "baselineWeights": {
+      "temperature": 1,
+      "elevation": 1,
+      "slope": 1,
+      "aridity": 1
+    },
+    "targetValues": {
+      "temperature": -10,
+      "elevation": 1800,
+      "slope": 15,
+      "aridity": 8
+    },
+    "tests": [
+      {
+        "field": "temperature",
+        "weight": 0.8,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "temperature",
+        "weight": 1.2,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "elevation",
+        "weight": 0.8,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "elevation",
+        "weight": 1.2,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "slope",
+        "weight": 0.8,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "slope",
+        "weight": 1.2,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "aridity",
+        "weight": 0.8,
+        "top20OverlapCount": 20,
+        "top20OverlapPercent": 100
+      },
+      {
+        "field": "aridity",
+        "weight": 1.2,
+        "top20OverlapCount": 19,
+        "top20OverlapPercent": 95
+      }
+    ],
+    "minimumTop20OverlapPercent": 95
+  }
+}

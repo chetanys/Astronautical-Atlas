@@ -1,0 +1,12 @@
+name,latitude,longitude,validation_feature,direction,coordinate_status,source_url
+Atacama Desert (Yungay),-24.1,-70.0,aridity,high,approximate,https://en.wikipedia.org/wiki/Atacama_Desert
+McMurdo Dry Valleys,-77.5,161.5,temperature,low,approximate,https://en.wikipedia.org/wiki/McMurdo_Dry_Valleys
+Haughton impact crater,75.4,-89.7,temperature,low,approximate,https://en.wikipedia.org/wiki/Haughton_impact_crater
+Mauna Kea,19.8,-155.5,elevation,high,approximate,https://en.wikipedia.org/wiki/Mauna_Kea
+Askja,65.0,-16.8,slope,high,approximate,https://en.wikipedia.org/wiki/Askja
+Dallol,14.2,40.3,temperature,high,approximate,https://en.wikipedia.org/wiki/Dallol
+Mars Desert Research Station,38.4,-110.8,aridity,high,approximate,https://en.wikipedia.org/wiki/Mars_Desert_Research_Station
+Meteor Crater,35.0,-111.0,slope,high,approximate,https://en.wikipedia.org/wiki/Meteor_Crater
+Lanzarote,29.0,-13.6,aridity,high,approximate,https://en.wikipedia.org/wiki/Lanzarote
+Teide,28.3,-16.6,elevation,high,approximate,https://en.wikipedia.org/wiki/Teide
+Death Valley,36.2,-116.8,temperature,high,approximate,https://en.wikipedia.org/wiki/Death_Valley
