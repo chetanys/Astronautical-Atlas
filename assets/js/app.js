@@ -1697,6 +1697,9 @@ function showPage(pageId, updateHistory = true) {
   const isAppPage = pageId === "atlasView";
   $("moonBtn").closest(".modes").classList.toggle("hidden", !isAppPage);
   document.body.dataset.page = pageId;
+  view.querySelectorAll("model-viewer").forEach(model => {
+    model.setAttribute("loading", "eager");
+  });
   if (pageId === "analogsView") loadCuratedProfiles();
 
   if (updateHistory) {

@@ -168,39 +168,47 @@ The weights shown above are the project's assigned research-framework weights. T
 
 The website uses an interpretable, **ML-inspired weighted-parameter ranking model**: it compares multiple features, applies explicit parameter weights and ranks candidate Earth analogues. The scoring rules and weights are set directly; they are not learned from labeled training examples. The resulting scores are relative similarity rankings, not probabilities or independent predictions.
 
-The two workflows use different inputs and scoring calculations:
+The two workflows use different inputs and scoring calculations.
 
-1. **Mapped quadrangle model (API):** For each available parameter, compare the planetary target with an Earth site value. The parameter similarity is scaled by the observed spread among available Earth sites, with a floor based on 25% of the absolute target value or 1. The weighted average uses only parameters with data for both the target and candidate:
+#### Mapped quadrangle model (API)
 
-   $$
-   s_i =
-   100 \max\left(
-   0,\,
-   1 - \frac{|t_i-e_i|}
-   {\max(r_i,\ 0.25|t_i|,\ 1)}
-   \right)
-   $$
+For each available parameter, compare the planetary target with an Earth site value. The parameter similarity is scaled by the observed spread among available Earth sites, with a floor based on 25% of the absolute target value or 1. The weighted average uses only parameters with data for both the target and candidate:
 
-   $$
-   S =
-   \frac{\sum_{i\in A} w_i s_i}
-   {\sum_{i\in A} w_i}
-   $$
+$$
+s_i =
+100 \max\left(
+0,\,
+1 - \frac{|t_i-e_i|}
+{\max(r_i,\ 0.25|t_i|,\ 1)}
+\right)
+$$
 
-   Here, $t_i$ is the planetary target, $e_i$ is the Earth-site value, $r_i$ is the observed Earth-site range for parameter $i$, $w_i$ is its configured weight, and $A$ is the set of parameters available on both sides. The API also reports data coverage, so a score based on fewer available parameters can be interpreted with that limitation in view.
+$$
+S =
+\frac{\sum_{i\in A} w_i s_i}
+{\sum_{i\in A} w_i}
+$$
 
-2. **Independent global-grid model (browser Web Worker):** Compare each grid cell with the user's temperature, elevation, slope and aridity targets. Zero-weight fields are omitted. The worker ranks cells by their weighted, scale-normalized absolute error and reports a score derived from that error:
+Here, $t_i$ is the planetary target, $e_i$ is the Earth-site value, $r_i$ is the observed Earth-site range for parameter $i$, $w_i$ is its configured weight, and $A$ is the set of parameters available on both sides. The API also reports data coverage, so a score based on fewer available parameters can be interpreted with that limitation in view.
 
-   $$
-   E(x) =
-   \frac{\sum_{i\in A} w_i\,|x_i-t_i|/q_i}
-   {\sum_{i\in A} w_i}
-   \qquad
-   \operatorname{score}(x) =
-   \operatorname{round}\left(\frac{100}{1+E(x)}\right)
-   $$
+#### Independent global-grid model (browser Web Worker)
 
-   Here, $x_i$ is the grid-cell value, $t_i$ is the user target, $q_i$ is the field's positive scale from the grid metadata, and $A$ contains fields with a positive user weight. The displayed score is a relative ranking aid, not a probability.
+Compare each grid cell with the user's temperature, elevation, slope and aridity targets. Zero-weight fields are omitted. The worker ranks cells by their weighted, scale-normalized absolute error:
+
+$$
+E(x) =
+\frac{\sum_{i\in A} w_i\,|x_i-t_i|/q_i}
+{\sum_{i\in A} w_i}
+$$
+
+It reports a score derived from that error:
+
+$$
+\mathrm{score}(x) =
+\mathrm{round}\left(\frac{100}{1+E(x)}\right)
+$$
+
+Here, $x_i$ is the grid-cell value, $t_i$ is the user target, $q_i$ is the field's positive scale from the grid metadata, and $A$ contains fields with a positive user weight. The displayed score is a relative ranking aid, not a probability.
 
 These are deterministic, rule-based weighted scoring methods with an ML-inspired multi-parameter structure. They have not been independently validated for use as field-site recommendations, environmental equivalents or mission qualification.
 
@@ -221,14 +229,14 @@ flowchart TD
 For criterion $k$, let $[lo_k,hi_k]$ be its stored editorial range, $[e_{lo,k},e_{hi,k}]$ the Earth envelope, $x_k$ the Earth-cell value, and $t_k$ the planetary target. First clip the target to the range represented on Earth:
 
 $$
-t'_k = \operatorname{clip}(t_k;\ e_{lo,k},\ e_{hi,k})
+t'_k = \mathrm{clip}(t_k;\ e_{lo,k},\ e_{hi,k})
 $$
 
 Then calculate the criterion similarity:
 
 $$
 s_k(x) =
-\operatorname{clip}\left(
+\mathrm{clip}\left(
 1 - \frac{|x_k - t'_k|}{hi_k-lo_k};
 0,\ 1
 \right)
@@ -239,7 +247,7 @@ Targets beyond anything on Earth (for example, a lunar 120 K day–night swing) 
 #### Combined score (weighted geometric mean)
 
 $$
-\operatorname{score}(x) =
+\mathrm{score}(x) =
 \prod_k s_k(x)^{\,w_k / \sum_j w_j}
 $$
 
@@ -335,7 +343,7 @@ The repository includes the research data and the runnable website/API:
 
 - **Challenge:** NASA Space Apps Challenge
 - **Project:** Astronautical Atlas
-- **Team:** [TEAM NAME]
+- **Team:** Extraterrestrial Nexus
 - **Website:** Local application; deployment not configured or validated
 - **Repository:** https://github.com/chetanys/Astronautical-Atlas
 
@@ -345,97 +353,64 @@ The repository includes the research data and the runnable website/API:
 
 ## 11. Download and Run the Website Locally
 
-### Before you start
+The project has two parts that must run simultaneously: the **FastAPI backend** (the analog ranking engine) and a **local HTTP server** for the frontend (`index.html`).
 
-- Git
-- Python 3.10 or later
-- Internet access for NASA POWER and ORNL DAAC MODIS requests
+**Python version note:** The API source uses Python 3.10 union type syntax, so use Python 3.10 or later, despite the prerequisite line in the supplied quick-start text below.
 
-No Node.js installation is needed. The website files and the three API workbooks (`api/data/mars_data.xlsx`, `api/data/moon_data.xlsx` and `api/data/earth_data.xlsx`) are included in the repository. The Python API dependencies are listed in `api/requirements.txt`. Keep the workbooks in that folder. The setup below creates a local Python environment at `api/venv`; it is ignored by Git.
+> **Prerequisites:** Python 3.9 or later, `pip`, and `git`.
 
-### Step 1 — Clone this repository
-
-Open a terminal and run:
+### Step 1 — Clone the repository
 
 ```bash
 git clone https://github.com/chetanys/Astronautical-Atlas.git
 cd Astronautical-Atlas
 ```
 
-If you already downloaded or extracted this repository, skip `git clone` and open a terminal in its project folder instead. It is the folder containing `index.html`, `README.md` and the `api` folder.
-
 ### Step 2 — Set up and start the API (Terminal 1)
 
-Open a terminal in the project folder (the folder containing `index.html`), then copy and run the commands for your operating system below. These commands enter `api`, create a virtual environment named `venv`, install the API dependencies, and start the API. Leave this terminal running while using the app.
-
-**macOS or Linux**
-
-```sh
+**macOS / Linux:**
+```bash
 cd api
 python3 -m venv venv
 source venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-uvicorn main:app --port 8000
 ```
 
-**Windows PowerShell**
-
-```powershell
+**Windows:**
+```bash
 cd api
-py -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m venv venv
+venv\Scripts\activate
+```
+
+Install dependencies and start the server:
+```bash
+pip install -r requirements.txt
 uvicorn main:app --port 8000
 ```
 
-**Windows Command Prompt**
+The API will be available at `http://127.0.0.1:8000`. Leave this terminal running.
 
-```bat
-cd api
-py -m venv venv
-venv\Scripts\activate.bat
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-uvicorn main:app --port 8000
+### Step 3 — Serve the frontend (Terminal 2)
+
+Open a **new terminal**, go back to the project root, and start a local HTTP server:
+
+**macOS / Linux:**
+```bash
+cd Astronautical-Atlas
+python3 -m http.server 5500
 ```
 
-If PowerShell blocks environment activation, use the Command Prompt instructions instead. For later sessions, open a terminal in the project folder, run `cd api`, activate the existing environment for your terminal, then run `uvicorn main:app --port 8000`.
-
-The API is available at [http://127.0.0.1:8000](http://127.0.0.1:8000). Leave Terminal 1 running.
-
-### Step 3 — Start the website (Terminal 2)
-
-Open a second terminal in the project folder (the folder containing `index.html`). Keep it open alongside the API terminal.
-
-**macOS or Linux**
-```sh
-python3 -m http.server 5173 --bind 127.0.0.1
+**Windows**
+```bash
+cd Astronautical-Atlas
+python -m http.server 5500
 ```
 
-**Windows PowerShell or Command Prompt**
-```powershell
-py -m http.server 5173 --bind 127.0.0.1
+Then open your browser and go to:
+
 ```
-
-When the API starts, its terminal should say it is running on `http://127.0.0.1:8000`. You can check it by opening [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health); it should show `{"status":"running"}`.
-
-Now open the website at [http://127.0.0.1:5173](http://127.0.0.1:5173). Do not open `index.html` directly as a `file://` URL: the website's worker, data files and API need to be served over HTTP.
-
-If the API reports that port `8000` is already in use, stop the other server using that port or change the API command in Terminal 1 to port `8011`:
-
-```sh
-python -m uvicorn main:app --host 127.0.0.1 --port 8011
+http://localhost:5500
 ```
-
-Then open the website with the API address added to the URL:
-
-```text
-http://127.0.0.1:5173/?api=http%3A%2F%2F127.0.0.1%3A8011
-```
-
-To stop either server, select its terminal and press **Ctrl+C**.
 
 ### Use the application
 
