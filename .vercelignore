@@ -1,0 +1,7 @@
+.git
+.vercel
+.venv
+data/
+scripts/
+requirements-grid.txt
+assets/earth_grid_training.csv.gz
