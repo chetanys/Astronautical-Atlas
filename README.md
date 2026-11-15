@@ -1,298 +1,274 @@
-# Otherworld Atlas
+# Astronautical Atlas
 
-**Live demo:** <https://hackathon1-private.vercel.app> · **Source:** <https://github.com/chetanys/Astronautical-analog-finder>
+*A data-driven framework for identifying terrestrial analogs of lunar and Martian environments.*
 
-Otherworld Atlas is a browser-based planetary analog screening prototype. It
-searches a bundled Earth land grid locally, ranks the closest cells for
-user-selected environmental targets, and presents the result as regional
-context. It is not a site certification, rover safety assessment, or mission
-planning tool.
+## 1. Introduction
 
-## What the app currently measures
+Future lunar and Martian exploration requires a detailed understanding of extraterrestrial surface environments. Earth-based analog sites can support the study and testing of technologies, operational methods and scientific approaches intended for use in these environments.
 
-The checked-in browser grid currently scans **575,482 source-covered land
-cells** on an approximately **15 km equal-area grid**. Its temperature,
-elevation, slope and aridity sources are recorded in
-`assets/earth_grid.json`; the checked-in grid currently uses TerraClimate
-2025 and WorldClim 2.1. The NASA extraction path below produces a replacement
-grid, but it does not become active until you export the layers and rebuild
-the binary.
+This project develops a comparative planetary database and a coordinate-based system for identifying terrestrial environments with characteristics similar to selected locations on the Moon and Mars.
 
-The NASA path uses NASADEM v001 elevation and MODIS MOD11A2 v061 clear-QA
-surface temperatures for complete calendar years 2015–2025. Temperature is
-the midpoint of the annual mean day and night LST values, not air temperature.
-NASADEM is not polar-global: its elevation/slope only replace the fallback
-where its valid land coverage exists. MODIS clear-sky gaps likewise retain
-the TerraClimate air-temperature fallback. The generated grid metadata
-records NASA coverage counts and these mixed-source definitions. Aridity
-remains the TerraClimate-derived proxy
-`10 × clamp(1 − annual precipitation / annual PET, 0, 1)`.
+The research brings together geological, mineralogical, topographical and environmental parameters. These parameters are organised into a structured dataset and used by a machine-learning component on the project website to compare extraterrestrial study areas with terrestrial reference locations.
 
-The Moon mode still sets context only: lunar rasters and authoritative
-Artemis-region geometries are not integrated. The supplied Mars spreadsheet
-and MOLA values are reference data, not equivalent Earth measurements.
+The project currently includes:
+- A lunar and Martian parameter database organised around planetary study areas and quadrangles.
+- An initial terrestrial reference dataset containing 208 locations.
+- A parameter-weighting framework with separate weights for Mars and the Moon.
+- A website workflow intended to accept planetary coordinates and return comparable terrestrial locations.
 
-The score is a weighted mean of absolute differences divided by each field's
-observed 5th-to-95th percentile spread. Its display value is
-`100 / (1 + normalized distance)`. This is a relative screening score, not a
-probability, calibrated scientific model, or rover risk score. Temperature,
-elevation, slope and aridity are the only scored fields; other spreadsheet
-parameters have no corresponding global Earth measurements.
+## 2. What Makes Our Approach Different?
 
-## Curated Moon and Mars reference profiles
+### Multi-parameter comparison
 
-The global scan ranks Earth-grid cells only. In the **Analogs** tab, the
-collapsed **Curated Moon / Mars profiles** picker lets users inspect one
-workbook-derived reference profile at a time without adding those extraterrestrial values to
-the Earth-grid target, score, or ranking. Included profile fields are read-only
-reference context; the four Earth search requirements remain independently
-editable in the scan controls. Profiles are not presented as Earth analog
-sites or as verified ground truth. The application has a separate shortcut to
-open this browser; it does not prefill the four grid targets. The analogs tab
-shows 20 named profiles per page, with search and Moon/Mars filters.
+Rather than relying on a single characteristic, the project considers multiple properties of each study area, including terrain, composition, thermal conditions, radiation, water or ice availability and geological characteristics.
 
-The generator keeps Mars rows labeled exactly `Measured` that also have a
-row-level HTTPS citation on a recognized agency, university, DOI, or scientific
-publisher domain. Moon fields must be tagged `Measured` without estimated,
-proxy, or not-verified qualifiers; the lunar workbook cites sources at profile
-level rather than field level. These are workbook labels and source links, not
-an independent validation of the underlying claims. The UI lists exclusions
-for source-poor Earth ice/water values, lithology-derived mineral estimates,
-and non-site-specific lunar facts instead of displaying them as observations.
+### Separate planetary frameworks
 
-Rebuild the JSON from the supplied source workbooks (not distributed in this
-repository) with:
+The Moon and Mars have different environmental conditions and different available datasets. The project therefore uses separate parameter sets and weighting schemes for each planetary body.
 
-```sh
-python3 -m scripts.build_curated_profiles \
-  --mars-workbook /path/to/mars_terrain_master_research.xlsx \
-  --moon-workbook "/path/to/Moon_Terrain_Master.xlsx"
-```
+### Coordinate-based discovery
 
-The generator requires `openpyxl`, declared in `requirements-grid.txt`. Its
-output is `assets/curated_reference_profiles.json`; no workbook values are
-added to or consumed by the global search worker.
+The intended website workflow starts with a user-selected location. The user enters lunar or Martian coordinates; the system identifies the corresponding study area or quadrangle, retrieves its parameter data and compares it with the terrestrial reference database.
 
-## Live NASA POWER and MODIS context
+### Beyond a fixed list of analog sites
 
-Selecting a ranked Earth grid cell requests its climatology from the public
-NASA POWER point API. The browser requests `T2M`, `T2M_MAX`, `T2M_MIN` and
-`PRECTOTCORR`; the displayed values are live API responses, while the
-climatology itself covers January 2001 through December 2025. Temperature is
-in °C and corrected precipitation is in mm/day. A failed request is shown as
-unavailable and can be retried; no placeholder climate values are displayed.
-The top ten scan rows are enriched with the same API in batches of three.
-These POWER lookups do not alter the bundled-grid score.
+The current terrestrial dataset contains 208 locations. A future goal is to expand this into a more systematic global reference database, rather than relying only on a fixed collection of named sites.
 
-The optional **NASA POWER regional context** panel in the **Analogs** tab
-makes a separate regional climatology request after the user chooses a grid
-candidate and clicks its button. It samples `T2M` only over a 2° × 2° bounding box around that
-candidate. NASA POWER regional requests require bounding coordinates and one
-parameter per request; this feature is not a global regional grid, does not
-replace bundled data, and does not change ranking. A regional request failure
-is shown in the panel with a retry action.
+## 3. Research Methodology
 
-MODIS is a separate live contextual sample from the ORNL DAAC MODIS/VIIRS
-subsets service, product `MOD11A2`. Direct browser requests are blocked by
-CORS, so the app calls the same-origin Vercel function `api/modis.js`. On cell
-selection, it requests day and night bands for two 2023 windows (DOY 001–073
-and 177–249), each with a 3 km sample box. This is not a full-year climatology
-or a 15 km tile mean. The UI labels it a point-area sample and explicitly says
-it does not alter the grid ranking. The **Load MODIS for top 10** button makes
-the four requests per cell sequentially and only when clicked.
+### 3.1 Parameter selection
 
-MODIS availability and latency depend on ORNL DAAC. A production check on
-November 15, 2026 returned valid HTTP 200 payloads for all four selected-cell
-samples; the requests took roughly 47–55 seconds each, so this is not an
-instant lookup. On upstream failure the app shows an unavailable state and
-offers a retry, without substituting values. Each browser request has a
-90-second timeout; the opt-in top-ten workflow processes one candidate at a
-time, so it may take several minutes. The proxy accepts only the two configured
-date windows and day/night LST bands, validates coordinates, and caches
-successful upstream responses for one day.
+The project uses a set of physical, geological, mineralogical and environmental parameters to describe planetary study areas. The selected parameters differ between Mars and the Moon in accordance with the datasets and variables included in each planetary framework.
 
-For an offline AppEEARS fallback, download the top-ten coordinate file with
-**Export top 10 sites JSON**, then run:
+The parameter groups include:
+- Study-area geometry and location
+- Topography
+- Atmospheric conditions
+- Surface properties
+- Mineralogy
+- Rock composition
+- Surface roughness
+- Daylight duration
+- Ice and water
+- Geological and geophysical activity
+- Geological age
 
-```sh
-python3 scripts/appeears_sites.py sites.json
-```
+The detailed parameter definitions, units and statistics are documented in the project data files.
 
-The script prompts for Earthdata credentials without echoing or saving the
-password, requests MOD11A2 v061 day/night LST and paired QC layers for 2020–2024,
-and writes `assets/modis_cache.json` only after verifying downloaded file
-checksums and parsing good-QA observations. The live app does not read this
-cache. The fallback uses MOD11A2 mandatory QA bits 0–1 equal to zero and
-reports day/night land-surface temperature, not air temperature. Do not place
-credentials in browser code or commit them.
+### 3.2 Data acquisition and spatial organisation
 
-The analog page returns the top 20 grid cells for the last search. They are
-data-ranked candidate cells, not 20 independently verified, named analog
-sites. The shared Earth and Moon spreadsheets provide parameter definitions,
-not measured site catalogs. The rover review pairs source-backed Earth-grid
-conditions with published Perseverance design facts; it does not assign
-failure probabilities or infer engineering performance from climate proxies.
+A key challenge was that planetary data were not consistently available at a common unit-area resolution.
 
-## Run locally
+For the Moon and Mars, several datasets provide information by quadrangle. The project therefore uses the quadrangle as the planetary study-area unit and compiles the available parameter statistics for each study area.
 
-Serve the repository over HTTP; browser workers and `fetch()` do not work
-reliably from a `file://` URL. For example:
+For Earth, equivalent parameter information was collected for 208 geographically distinct terrestrial locations, including places such as the Grand Canyon. These locations form the initial terrestrial reference dataset.
 
-```sh
-python -m http.server 8000
-```
+The Earth locations are not planetary quadrangles; they are terrestrial reference sites selected for comparison using the corresponding parameters where data are available.
 
-Then open `http://localhost:8000`. Keep `assets/earth_grid.bin` and
-`assets/earth_grid.json` together; the JSON includes field units, scoring
-scales, spatial coverage and citations.
+### 3.3 Data processing and normalisation
 
-## Verify NASA data access through the AppEEARS API
+A major limitation during data collection was the lack of sufficient measurements for every individual unit area within a planetary quadrangle. Ideally, each constituent unit would have its own parameter measurement and could be normalised separately. Because this level of detail was not consistently available, the project uses the reported average value for each parameter within a quadrangle.
 
-The public AppEEARS product catalog confirms `MOD11A2.061` with
-`LST_Day_1km`, `LST_Night_1km`, `QC_Day` and `QC_Night`, and `NASADEM_NC.001`
-with `NASADEM_HGT` in metres. Verify the catalog without credentials:
+For a parameter with available constituent measurements, the average can be represented as:
 
-```sh
-python -m scripts.appeears_access_test --catalog-only
-```
+\[
+X_{\mathrm{avg}}=\frac{X_1+X_2+\cdots+X_n}{n}
+\]
 
-Run a small authenticated extraction for one point at Mauna Kea:
+The average value is then used in the min-max normalisation formula:
 
-```sh
-python -m scripts.appeears_access_test
-```
+\[
+X_{\mathrm{norm}}=
+\frac{X_{\mathrm{avg}}-X_{\min}}
+{X_{\max}-X_{\min}}
+\]
 
-The script prompts for the NASA Earthdata Login username and a hidden password;
-it does not save credentials. It submits a one-point MODIS task for 2020,
-requests both LST layers and their QC layers, polls the task, downloads the
-CSV bundle to `data/appeears/`, and verifies each file's SHA-256 checksum.
-Use `--site "Haughton impact crater"` to select another exact name from
-`assets/known_sites.csv`, `--year 2024` to test a different year, or
-`--task-id TASK_ID` to resume polling/downloading an existing task.
+Where:
+- \(X_{\mathrm{avg}}\) is the available average value for the parameter in the study area.
+- \(X_{\min}\) is the minimum recorded value for that parameter within the same quadrangle.
+- \(X_{\max}\) is the maximum recorded value for that parameter within the same quadrangle.
 
-MOD11A2 is an 8-day clear-sky land-surface-temperature composite, not air
-temperature. Use the paired QC layers and mask samples unless mandatory QA
-bits 0–1 equal 0; convert valid LST values with `Kelvin = DN × 0.02`, then
-`Celsius = Kelvin − 273.15`. A point extraction proves access and provides
-actual sample values, but does not activate or validate the browser's
-575,482-cell global grid. AppEEARS is not a one-call global 8-day raster
-export, and NASADEM point elevations alone cannot establish a 100 m-baseline
-slope. The checked-in grid remains TerraClimate/WorldClim until a separate,
-validated global build replaces it.
+This produces a dimensionless value between 0 and 1 when \(X_{\max}>X_{\min}\). If the maximum and minimum are equal, the formula is undefined and requires separate handling.
 
-## Optional full-grid Earth Engine raster export
+**Important methodological note:** This procedure normalises the quadrangle's average relative to that quadrangle's own observed range. It does not create missing unit-area measurements, correct for differences in quadrangle size, or make independently normalised quadrangles automatically comparable in absolute terms. These constraints are considered in the interpretation of results and are part of the project's current limitations.
 
-The NASA layers are prepared in Google Earth Engine and exported to Google
-Drive as one GeoTIFF aligned to the app's 15 km grid:
+### 3.4 Parameter weighting framework
 
-1. Register the Cloud project for Earth Engine at
-   <https://console.cloud.google.com/earth-engine>. Earth Engine requires a
-   registered project; select commercial registration if this project will
-   be used commercially.
-2. Open <https://code.earthengine.google.com/> and select Cloud project
-   `nasa-project-514803` in the project selector.
-3. Open `scripts/export_nasa_earth_layers.js` in the Code Editor, run it, then
-   start its export task in the **Tasks** panel. The finished
-   `nasa_earth_layers_2015_2025.tif` appears in the `OtherworldAtlas` folder
-   in Google Drive. Download it to `data/earth_engine/`.
+The project uses separate parameter weights for Mars and the Moon. The weights represent each parameter's assigned contribution to the overall weighted similarity score.
 
-The export uses only MODIS pixels whose QA mandatory bits 0–1 indicate good
-quality. It converts each stored MOD11A2 LST value with
-`Kelvin = DN × 0.02`, then `Celsius = Kelvin − 273.15`; day/night midpoint is
-`(mean day LST + mean night LST) / 2`. MOD11A2 is an 8-day clear-sky land
-surface-temperature composite; its value is not a continuous all-weather air
-temperature. NASADEM elevation is referenced to the EGM96 geoid. Its slope
-layer is Horn terrain slope calculated from the DEM aggregated to a 100 m
-baseline, then averaged into the 15 km cell. It is a regional terrain metric,
-not rover-scale traversability.
+The weighted score is calculated using:
 
-Install the grid dependencies and prepare the TerraClimate/WorldClim fallback
-rasters:
+\[
+S=\frac{\sum_i w_iS_i}{\sum_i w_i}
+\]
 
-```sh
-pip install -r requirements-grid.txt
-python -m scripts.prepare_terraclimate --year 2025
-```
+Where:
+- \(S\) is the overall similarity score.
+- \(w_i\) is the weight assigned to parameter \(i\).
+- \(S_i\) is the similarity score for parameter \(i\).
 
-Build the binary and metadata with:
+The weights for each planetary body sum to 100%.
 
-```sh
-python -m scripts.build_grid \
-  --temperature data/processed/temperature_2025.tif \
-  --elevation data/processed/worldclim/wc2.1_2.5m_elev.tif \
-  --precipitation data/processed/precipitation_2025.tif \
-  --pet data/processed/pet_2025.tif \
-  --nasa-grid data/earth_engine/nasa_earth_layers_2015_2025.tif \
-  --period "MODIS MOD11A2 v061 clear-QA day/night LST, 2015-2025; TerraClimate 2025 fallback" \
-  --citation "NASA/USGS/JPL NASADEM Merged DEM Global 1 arc-second V001, DOI:10.5067/MEaSUREs/NASADEM/NASADEM_HGT.001" \
-  --citation "NASA LP DAAC MODIS MOD11A2 V061, DOI:10.5067/MODIS/MOD11A2.061; 2015-2025 day/night LST, clear mandatory QA only" \
-  --citation "TerraClimate (2025), monthly climate fields, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191" \
-  --citation "WorldClim 2.1 elevation fallback (2.5 arc-minute); Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html"
-```
+#### Mars parameter weights
 
-If you omit `--nasa-grid`, the build remains the current TerraClimate /
-WorldClim-only grid. After rebuilding, inspect `assets/earth_grid.json`:
-`nasaLayerCoverage` reports how many land cells actually used NASA layers,
-and the temperature/elevation definitions describe the fallback behavior.
-Commit or deploy the rebuilt `earth_grid.bin` and `earth_grid.json` together.
+| Parameter | Weight |
+|---|---:|
+| Mean elevation | 4% |
+| Slope | 3% |
+| Rock composition | 8% |
+| Mineral composition | 9% |
+| Smoothness | 4% |
+| Geological age | 5% |
+| Atmospheric pressure | 9% |
+| Mean temperature | 8% |
+| Thermal inertia | 5% |
+| Water/ice | 9% |
+| Humidity | 3% |
+| Wind speed | 3% |
+| Daylight at Ls 90° | 4% |
+| Daylight at Ls 270° | 4% |
+| Radiation | 8% |
+| Geological activity | 5% |
+| Quakes | 4% |
+| Volcanism | 5% |
+| **Total** | **100%** |
 
-## Validation and source data
+#### Moon parameter weights
 
-`assets/known_sites.csv` contains approximate coordinates and source links for
-11 named reference areas. Generate the validation report with:
+| Parameter | Weight |
+|---|---:|
+| Elevation | 6% |
+| Slope | 5% |
+| Rock composition | 9% |
+| Mineral composition | 10% |
+| Smoothness | 5% |
+| Geological age | 7% |
+| Mean temperature | 8% |
+| Thermal inertia | 7% |
+| Water/ice | 10% |
+| Daylight at Ls 90° | 5% |
+| Daylight at Ls 270° | 5% |
+| Radiation | 9% |
+| Geological activity | 6% |
+| Quakes | 5% |
+| Volcanism | 3% |
+| **Total** | **100%** |
 
-```sh
-node scripts/validate_known_sites.js
-```
+The weights shown above are the project's current assigned weights. The scientific rationale and procedure used to determine each weight should be documented alongside the model as the weighting framework is validated and refined.
 
-The script selects the nearest source-covered tile, reports the percentile
-for one expected feature per site, and requires the tile center to be within
-one 15 km cell width of the approximate coordinate. It also runs ±20%
-one-at-a-time weight sensitivity checks against the default top 20. These are
-limited sanity checks—not independent validation of the dataset or ranking.
-The report is `assets/known_sites_validation.json`; feature-threshold misses
-and locations too far from a source-covered tile remain reported as failures.
+### 3.5 Machine-learning-based analog identification
 
-The Mars reference bundle is built from the project-supplied spreadsheet and
-public MOLA source data:
+The project website incorporates a machine-learning component intended to compare planetary study areas with terrestrial reference locations.
 
-```sh
-python -m scripts.prepare_mars_reference
-```
+The planned user workflow is:
 
-The supplied Mars values have not been independently validated. MOLA's coarse
-source spacing differs from the Earth grid, so its slope is reference-only and
-is not copied into a scored target.
+1. The user enters the latitude and longitude of a location on the Moon or Mars.
+2. The system identifies the corresponding planetary quadrangle or study area.
+3. The system retrieves the available parameter values and processed data for that area.
+4. The model compares the planetary parameter profile with the terrestrial reference dataset.
+5. The website presents terrestrial locations identified as potential analogs.
 
-The rover panel restores the interactive 3D model viewer from the earlier
-project version, including drag-to-orbit, zoom, preset camera controls and
-selectable wheel, power and communications hotspots. The model-viewer's global
-minimum render scale is fixed at 1 to avoid lowering model resolution during
-camera interaction; this may increase GPU workload for the rover and Earth
-models. The bundled GLB's
-original source and redistribution license are not recorded in the repository
-history; verify those rights before publishing or redistributing the asset.
-The visualization is not a validated mobility model and does not represent
-flight telemetry. NASA component facts shown in the separate engineering
-reference panel are sourced independently and are not measurements of this
-model.
+The purpose is to help users explore Earth environments that share selected characteristics with a chosen lunar or Martian location.
 
-## Limits and reuse
+The exact model architecture, training procedure, validation metrics and method used to calculate each individual parameter similarity should be documented with the implementation. A normalised parameter value should not be treated as a similarity score by itself; the comparison method must define how the difference or similarity between the planetary and terrestrial values is calculated.
 
-The rover panel is a screening aid. Regional slope and surface/air temperature do not
-measure wheel traction, obstacle geometry, thermal extremes, radiation,
-illumination, communications, dust behavior, hardware limits or failure
-probability. Use dedicated, mission-specific data and laboratory/field tests
-before engineering decisions.
+## 4. Parameters and Scientific Framework
 
-Before commercial deployment, confirm the applicable redistribution,
-attribution and commercial-use terms for every dataset and visual asset.
-The Team page uses the supplied telescope image, bundled locally with its white
-background removed for the starfield design. The original supplied image is
-also retained in `assets/team-telescope.png`.
-NASA data are generally openly usable subject to NASA's data policy and
-product citation requirements; confirm each product's current terms. Earth
-Engine itself requires the project to be registered for the intended use.
-TerraClimate is CC0; WorldClim attribution is required and its applicable
-commercial terms should be confirmed. The app is not represented as a
-commercial-ready or safety-qualified product.
+The project records the following parameter groups. Not every parameter is available for both planetary bodies.
+
+| Category | Parameters represented in the project |
+|---|---|
+| Study area | Latitude and longitude bounds, central coordinates, radius and area |
+| Topography | Elevation (minimum, maximum and mean), relief, slope |
+| Atmosphere | Temperature, pressure, humidity, wind speed and radiation |
+| Surface | Thermal inertia |
+| Mineralogy | FeO, TiO₂, MgO, Al₂O₃ and CaO abundance; olivine, pyroxene, plagioclase, clays/phyllosilicates, sulfates, carbonates, chlorides and silica |
+| Rock profile | Sedimentary, igneous and metamorphic rock shares |
+| Roughness | Roughness rank |
+| Daytime hours | Daytime duration at solar longitude (Ls) 90° and 270° |
+| Ice and water | Ice percentage and water percentage |
+| Activity | Tectonic and volcanic activity shares; quake-related information where available |
+| Geology | Geological period or age classification |
+
+The project data dictionary and source workbooks should be consulted for the exact definition, units, availability and statistical treatment of each field.
+
+## 5. Data Sources, Tools and Documentation
+
+The research uses publicly available planetary datasets, mapping resources, scientific publications and reference databases. The sources collected during the project are organised by topic in [`SOURCES.md`](SOURCES.md).
+
+The source inventory includes links found in the project's research workbooks, grouped by their associated subject and original workbook location. It should be treated as a working bibliography: links and dataset versions should be checked before final scientific citation.
+
+Project data and supporting files include:
+- Lunar and Martian machine-learning data templates.
+- Mars geographical features database.
+- Mars classification reference.
+- Combined Mars and Moon planetary database.
+- Parameter definitions and data dictionaries.
+
+## 6. Limitations and Challenges
+
+The project has several current limitations:
+
+- **Uneven data availability:** Not all parameters are available for every planetary region or terrestrial location.
+- **Limited spatial detail:** Some lunar and Martian measurements are available at quadrangle level rather than for each smaller unit area.
+- **Different spatial representations:** Planetary quadrangles and named terrestrial reference sites are not inherently equivalent spatial units.
+- **Resolution differences:** Datasets may have different spatial resolutions, observation periods and measurement methods.
+- **Normalisation constraints:** Normalising a quadrangle's mean against its own minimum and maximum gives a local relative value; it does not guarantee direct absolute comparability between different quadrangles or with Earth.
+- **Measurement uncertainty:** Remotely sensed and derived measurements may contain uncertainty and depend on instrument and processing methods.
+- **Parameter availability differs by body:** The Moon and Mars do not have identical parameter sets. For example, atmospheric parameters included in the Mars framework are not included in the current Moon weighting table.
+- **Initial terrestrial coverage:** The Earth reference dataset currently contains 208 locations and is not yet a complete global spatial database.
+- **Model validation:** The reliability of analog results depends on the quality, coverage and comparability of input data, as well as the model's validation.
+
+The identified terrestrial locations should therefore be interpreted as potential analogs based on the selected parameters, not as exact replicas of extraterrestrial environments.
+
+## 7. Future Scope
+
+Future development aims to expand the project's data coverage, improve spatial comparability and strengthen the analog identification system.
+
+Planned directions include:
+
+- **Global terrestrial coverage:** Expand the current 208-site Earth dataset into a global database.
+- **Regular spatial tiling:** Work towards dividing Earth's surface into square tiles with a target area of 15 km², subject to data availability and a consistent spatial-grid definition.
+- **Higher-resolution planetary data:** Incorporate more detailed measurements as suitable datasets become available.
+- **Improved data harmonisation:** Account more explicitly for differences in spatial resolution, measurement methods, observation periods and study-area size.
+- **Model development and validation:** Document the ML architecture, test its performance and evaluate the stability of its analog rankings.
+- **More transparent comparisons:** Show users the parameter-level comparisons and contributions behind the identified analog locations.
+- **Interactive mapping:** Develop the coordinate-based website experience to display the selected planetary region and its corresponding terrestrial analogs.
+
+## 8. Acknowledgements
+
+We acknowledge the space agencies, scientific institutions, researchers and data providers whose publicly available observations, maps, datasets and publications support this project.
+
+These resources include planetary science and mapping materials from NASA and its Jet Propulsion Laboratory, the United States Geological Survey (USGS), the European Space Agency (ESA), and other institutions and research groups represented in the project's source inventory.
+
+We are grateful to the researchers and mission teams whose work makes comparative planetary research and the study of terrestrial analog environments possible.
+
+A topic-wise list of the links collected from the project's research workbooks is available in [`SOURCES.md`](SOURCES.md). Individual datasets and publications should be cited with their specific titles, providers, versions and access details when used in the final analysis.
+
+## 9. Repository Contents
+
+The repository contains the research datasets, classification references, parameter documentation and supporting materials used to develop the planetary comparison framework.
+
+| File or folder | Description |
+|---|---|
+| `SOURCES.md` | Topic-wise inventory of collected research links |
+| `Lunar_ML_Data_Template.xlsx` | Lunar parameter dataset/template |
+| `Mars_ML_Data_Template.xlsx` | Mars parameter dataset/template |
+| `mars_classification_reference.xlsx` | Classification reference material |
+| `Mars_Geographical_Features_Database.xlsx` | Mars geographical features reference |
+| `mars_moon_planetary_database.xlsx` | Combined planetary database |
+| `README.md` | Project overview, methodology and documentation |
+
+*Update this table to match the final filenames and folders in the GitHub repository.*
+
+## 10. Project Information
+
+- **Challenge:** NASA Space Apps Challenge
+- **Project:** [PROJECT NAME]
+- **Team:** [TEAM NAME]
+- **Website:** [ADD WEBSITE LINK]
+- **Repository:** [ADD REPOSITORY LINK]
+
+---
+
+*This project is a research and comparative-analysis framework. Identified terrestrial locations are potential environmental analogs based on the parameters and datasets available; they should not be interpreted as exact physical equivalents of lunar or Martian sites.*
