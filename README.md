@@ -1,5 +1,7 @@
 # Otherworld Atlas
 
+**Live demo:** <https://hackathon1-private.vercel.app> · **Source:** <https://github.com/chetanys/Astronautical-analog-finder>
+
 Otherworld Atlas is a browser-based planetary analog screening prototype. It
 searches a bundled Earth land grid locally, ranks the closest cells for
 user-selected environmental targets, and presents the result as regional
@@ -57,10 +59,10 @@ or a 15 km tile mean. The UI labels it a point-area sample and explicitly says
 it does not alter the grid ranking. The **Load MODIS for top 10** button makes
 the four requests per cell sequentially and only when clicked.
 
-The ORNL service may be unavailable; the current live endpoint test returned
-HTTP 503. In that case the app shows an unavailable state and offers a retry,
-without substituting values. The selected-sample UI has not been verified
-against live MODIS payloads while the upstream is returning 503. The proxy
+MODIS sampling is implemented but depends on ORNL DAAC availability; the
+service returned HTTP 503 during the latest endpoint test, so live MODIS
+values were not verified at submission time. In that case the app shows an
+unavailable state and offers a retry, without substituting values. The proxy
 accepts only the two configured date windows and day/night LST bands, validates
 coordinates, and caches successful upstream responses for one day.
 
@@ -216,6 +218,16 @@ python -m scripts.prepare_mars_reference
 The supplied Mars values have not been independently validated. MOLA's coarse
 source spacing differs from the Earth grid, so its slope is reference-only and
 is not copied into a scored target.
+
+The rover visualization is now project-authored procedural Three.js geometry,
+not the unverified bundled rover mesh. It is an illustrative six-wheel rover,
+not a Perseverance replica or flight-compatible model. Three.js v0.170.0 is
+loaded from <https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js>
+under the MIT license (<https://github.com/mrdoob/three.js/blob/dev/LICENSE>).
+If the library or WebGL renderer is unavailable, the page displays the
+included project-authored SVG schematic instead. NASA Perseverance component
+facts shown in the separate engineering reference panel are linked to NASA's
+mission page and are not measurements of the illustration.
 
 ## Limits and reuse
 

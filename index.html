@@ -44,7 +44,7 @@
         <h1>Find the places on Earth<br><em>that answer space questions.</em></h1>
         <p>
           Describe the surface conditions you need. Otherworld Atlas searches
-          roughly 575,000 source-covered land tiles at about 15 km equal-area resolution and brings the closest
+          575,482 source-covered land tiles on an approximately 15 km equal-area grid and brings the closest
           candidates to the globe—right in your browser.
         </p>
         <div class="hero-actions">
@@ -84,7 +84,7 @@
       <button class="path-card" type="button" data-page="analogsView">
         <span class="path-number">03 / CATALOG</span>
         <strong>Understand the analogs</strong>
-        <span>View data-ranked grid candidates after a scan, plus the scoring method, validation checks and limitations.</span>
+        <span>View the top 20 grid candidates after a scan, with validation, sources and limitations.</span>
         <b>VIEW CATALOG →</b>
       </button>
     </section>
@@ -112,7 +112,7 @@
     </section>
     <section class="service-cta">
       <div><small class="eyebrow">REPOSITORY</small><h2>Explore the project source</h2><p>Review the code, data-preparation workflow and documented assumptions.</p></div>
-      <a class="btn-mission link-button" href="https://github.com/chetanys/Hackathon1-private" target="_blank" rel="noopener noreferrer">OPEN GITHUB ↗</a>
+      <a class="btn-mission link-button" href="https://github.com/chetanys/Astronautical-analog-finder" target="_blank" rel="noopener noreferrer">OPEN GITHUB ↗</a>
     </section>
     <button class="btn-mission" type="button" data-page="atlasView">USE THE APPLICATION</button>
   </main>
@@ -136,12 +136,12 @@
   <main id="analogsView" class="page-view content-view hidden">
     <section class="page-heading">
       <small class="eyebrow">CANDIDATES, NOT CERTIFICATIONS</small>
-      <h1>Earth analog catalog.</h1>
-      <p>These are the 20 best-scoring grid cells for your most recent search, recalculated from measured grid fields—not a preset list of named sites.</p>
+      <h1>Top 20 grid candidates.</h1>
+      <p>These are the top 20 grid candidates for your most recent search, ranked by the active measured grid fields—not a preset list of named sites.</p>
     </section>
     <div class="catalog-notice">
-      <strong>Data-ranked candidates · not named analog sites</strong>
-      <p>The supplied Earth spreadsheet contains 98 parameter definitions, not a list of measured site records. Candidate cells use the current 15 km Earth grid. Their rank is a screening result, not a site validation or mission recommendation.</p>
+    <strong>Data-ranked grid candidates · not named analog sites</strong>
+    <p>These are ranked cells from the current approximately 15 km equal-area Earth grid, not a preset catalog. Their rank is a screening result, not independent site validation or a mission recommendation.</p>
     </div>
     <div id="analogsCatalog" class="analogs-grid"></div>
     <section class="formula-card">
@@ -162,7 +162,7 @@
     <section class="formula-card mars-source-card">
       <small class="eyebrow">MARS SOURCE DATA · 30 REGIONS</small>
       <h2>Mars reference regions and MOLA terrain context</h2>
-      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Temperature and elevation may be copied as raw numeric targets, but Earth and Mars datums and environments are not equivalent. The MOLA slope estimate is reference-only: its 0.25° source pixels have an approximately 27.8 km north-south spacing, unlike the Earth grid's 15 km slope baseline.</p>
+      <p>The table preserves the supplied Mars values and adds a MOLA terrain estimate. Temperature and elevation may be copied as raw numeric targets, but Earth and Mars datums and environments are not equivalent. The MOLA slope estimate is reference-only: its source spacing is approximately 27.8 km north-south, unlike the Earth grid's approximately 15 km equal-area cell spacing.</p>
       <p id="marsDataStatus" role="status" aria-live="polite">Loading Mars source data…</p>
       <p>Spreadsheet values are project-provided; the project owner confirms redistribution rights. Scientific accuracy and original methods still require independent review.</p>
       <div class="mars-table-wrap">
@@ -225,6 +225,26 @@
       <a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations ↗</a>
       <a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 ↗</a>
     </section>
+    <section class="formula-card" aria-labelledby="limitsSourcesHeading">
+      <small class="eyebrow">DATA PROVENANCE · NO HIDDEN COVERAGE</small>
+      <h2 id="limitsSourcesHeading">Limits and sources</h2>
+      <p id="gridMetadataSummary" role="status" aria-live="polite">
+        Loading active grid metadata…
+      </p>
+      <ul id="gridSourceList" class="source-list">
+        <li>Source citations load from assets/earth_grid.json.</li>
+      </ul>
+      <ul>
+        <li>TerraClimate 2025 monthly climate fields and WorldClim 2.1 static elevation are the checked-in ranking inputs unless metadata reports NASA layer coverage.</li>
+        <li>Optional grid layers: NASADEM HGT v001 elevation and MODIS MOD11A2 v061 clear-QA land-surface temperature, 2015–2025; active cell counts are listed above.</li>
+        <li>NASA POWER live contextual climatology: January 2001–December 2025 · <a href="https://power.larc.nasa.gov/docs/services/api/temporal/climatology/" target="_blank" rel="noopener noreferrer">API documentation ↗</a></li>
+        <li>Live MODIS contextual samples: MOD11A2 via ORNL DAAC, 2023 DOY 001–073 and 177–249 · <a href="https://modis.ornl.gov/rst/ui/" target="_blank" rel="noopener noreferrer">service documentation ↗</a></li>
+        <li>Moon mode is context-only; lunar raster measurements are not part of the active search.</li>
+        <li>NASA POWER and live ORNL MODIS lookups add context only and do not change ranking.</li>
+        <li>The supplied Mars spreadsheet values are unverified reference data, not equivalent Earth measurements.</li>
+        <li>MODIS live samples use two 2023 seasonal windows and depend on ORNL DAAC availability.</li>
+      </ul>
+    </section>
     <button class="btn-mission" type="button" data-page="atlasView">FIND MATCHES FOR MY REQUIREMENTS</button>
   </main>
 
@@ -232,46 +252,73 @@
     <section class="page-heading">
       <small class="eyebrow">THE PEOPLE BEHIND THE PROTOTYPE</small>
       <h1>Team Otherworld Atlas.</h1>
-      <p>Meet the people shaping the Otherworld Atlas experience. This is a partial roster; more team profiles will be added.</p>
+      <p>Project team roster.</p>
     </section>
-    <div class="catalog-notice">
-      <strong>Partial team roster</strong>
-      <p>Angel Saini is one member of the team. Additional names and roles will be added later.</p>
+    <div class="team-roster" role="list">
+      <section class="feature-card team-member-card" role="listitem" aria-label="Chetan YS, Bengaluru, Karnataka">
+        <span class="team-initials" aria-hidden="true">CY</span>
+        <div><h2>Chetan YS</h2><p>Bengaluru, Karnataka</p></div>
+      </section>
+      <section class="feature-card team-member-card" role="listitem" aria-label="Jiana Parmar, Mumbai, Maharashtra">
+        <span class="team-initials" aria-hidden="true">JP</span>
+        <div><h2>Jiana Parmar</h2><p>Mumbai, Maharashtra</p></div>
+      </section>
+      <section class="feature-card team-member-card" role="listitem" aria-label="Rayyan Sheikh, Faridabad, Haryana">
+        <span class="team-initials" aria-hidden="true">RS</span>
+        <div><h2>Rayyan Sheikh</h2><p>Faridabad, Haryana</p></div>
+      </section>
+      <section class="feature-card team-member-card" role="listitem" aria-label="Dhiaan Zaveri, Mumbai, Maharashtra">
+        <span class="team-initials" aria-hidden="true">DZ</span>
+        <div><h2>Dhiaan Zaveri</h2><p>Mumbai, Maharashtra</p></div>
+      </section>
+      <section class="feature-card team-member-card" role="listitem" aria-label="Vanshika Deorukhkar, Mumbai, Maharashtra">
+        <span class="team-initials" aria-hidden="true">VD</span>
+        <div><h2>Vanshika Deorukhkar</h2><p>Mumbai, Maharashtra</p></div>
+      </section>
+      <section class="feature-card team-member-card" role="listitem" aria-label="Angel Saini, Faridabad, Haryana">
+        <span class="team-initials" aria-hidden="true">AS</span>
+        <div><h2>Angel Saini</h2><p>Faridabad, Haryana</p></div>
+      </section>
     </div>
-    <section class="feature-card team-member-card" aria-label="Team member: Angel Saini">
-      <span>TEAM MEMBER · DESIGN</span>
-      <h2>Angel Saini</h2>
-      <p>Design</p>
-    </section>
   </main>
 
   <main id="roverView" class="page-view rover-view hidden">
     <section class="rover-intro">
       <div>
-        <small class="eyebrow">MARS 2020 PERSEVERANCE · VISUAL SANDBOX</small>
+        <small class="eyebrow">CODE-BUILT ROVER · VISUAL SANDBOX</small>
         <h1>Explore the rover. Inspect the gaps.</h1>
-        <p>This downloaded rover assembly is a visual reference only. The sandbox is not connected to flight software, rover telemetry, or a validated mobility model.</p>
+        <p>This code-built rover is a conceptual illustration, not a Perseverance replica or validated mobility model. The sandbox is not connected to flight software or rover telemetry.</p>
       </div>
       <span class="prototype-badge">PROTOTYPE STAGE</span>
     </section>
     <div class="rover-layout">
       <section class="rover-model-panel">
-        <div class="rover-model-heading"><span>3D ROVER REFERENCE</span><small>DRAG TO ROTATE · USE VIEW CONTROLS</small></div>
-        <model-viewer id="roverModel" src="./assets/perseverance.glb"
-          alt="3D model of the Mars 2020 Perseverance rover"
-          camera-controls interaction-prompt="none" shadow-intensity="1"
-          exposure="1" camera-orbit="35deg 70deg 5m"
-          min-camera-orbit="auto auto 2m" max-camera-orbit="auto auto 15m"
-          touch-action="pan-y"
-          class="rover-model" reveal="auto">
-          <button slot="hotspot-wheel" class="rover-hotspot" data-position="-1.2m -0.5m 0.9m" data-normal="-1 0 0" data-subsystem="wheels" aria-label="Inspect mobility and wheels">WHEEL</button>
-          <button slot="hotspot-power" class="rover-hotspot" data-position="0m 0.5m -1.2m" data-normal="0 0 -1" data-subsystem="power" aria-label="Inspect rover power system">POWER</button>
-          <button slot="hotspot-comms" class="rover-hotspot" data-position="0m 2m 0m" data-normal="0 1 0" data-subsystem="comms" aria-label="Inspect communications">COMMS</button>
-        </model-viewer>
-        <div id="roverModelFallback" class="rover-model-fallback hidden" role="status" aria-live="polite">
-          <strong>3D model did not load</strong>
-          <span>Check your connection and make sure the site is being served over HTTP, then try again.</span>
-          <button id="retryRoverModel" class="secondary-action" type="button">RETRY 3D MODEL</button>
+        <div class="rover-model-heading"><span>CODE-BUILT 3D ROVER</span><small>DRAG TO ROTATE · USE VIEW CONTROLS</small></div>
+        <canvas id="roverCanvas" class="rover-model" role="img"
+          aria-label="Conceptual code-built six-wheel rover illustration"></canvas>
+        <div id="roverModelFallback" class="rover-model-fallback" role="status" aria-live="polite">
+          <strong>3D renderer unavailable · showing schematic</strong>
+          <svg id="roverSchematic" class="rover-schematic" viewBox="0 0 520 340"
+            role="img" aria-label="Code-built schematic of a six-wheel planetary rover">
+            <g class="schematic-rover">
+              <path class="schematic-deck" d="M152 151h215l-24 75H177z"/>
+              <path class="schematic-panel" d="M116 154h36v62h-36zm252 0h36v62h-36z"/>
+              <path class="schematic-chassis" d="M190 226h150l-16 34H206z"/>
+              <path class="schematic-mast" d="M258 151V91h18v60"/>
+              <path class="schematic-head" d="M232 72h72v28h-72z"/>
+              <circle class="schematic-lens" cx="248" cy="86" r="7"/>
+              <circle class="schematic-lens" cx="279" cy="86" r="7"/>
+              <path class="schematic-antenna" d="M344 153q47-40 69 0m-48-4v-23m-17 23h35"/>
+              <path class="schematic-axle" d="M198 219 166 271m65-44-13 51m112-59 31 52m-77-44 13 51"/>
+              <g class="schematic-wheel">
+                <circle cx="158" cy="277" r="26"/><circle cx="218" cy="283" r="26"/>
+                <circle cx="379" cy="277" r="26"/><circle cx="302" cy="283" r="26"/>
+                <circle cx="137" cy="211" r="24"/><circle cx="397" cy="211" r="24"/>
+              </g>
+              <path class="schematic-ground" d="M50 311h420"/>
+              <text x="260" y="329" text-anchor="middle">CONCEPTUAL SCHEMATIC · NOT TO SCALE</text>
+            </g>
+          </svg>
         </div>
         <div class="rover-camera-controls" role="group" aria-label="Rover camera controls">
           <button type="button" id="roverViewLeft" aria-label="Rotate rover view left">←</button>
@@ -280,18 +327,18 @@
           <button type="button" id="roverViewReset">RESET VIEW</button>
           <button type="button" id="roverAutoRotate" aria-pressed="false">AUTO SPIN</button>
         </div>
-        <div class="rover-attribution">        Perseverance visual model · Confirm source attribution and redistribution terms before republishing.</div>
+        <div class="rover-attribution">Project-authored procedural geometry · Three.js (MIT) · not a flight model.</div>
       </section>
       <aside class="rover-console">
         <div class="rover-control-group">
           <label for="roverPreset">SANDBOX CONFIGURATION</label>
           <select id="roverPreset">
-            <option value="perseverance">Perseverance-class · reference</option>
+            <option value="perseverance">Perseverance-inspired scenario</option>
             <option value="lunar-scout">Lunar Scout · conceptual sandbox</option>
           </select>
           <p id="roverPresetNote" class="rover-preset-note">
-            Reference visual: the Perseverance assembly. The scenario preset
-            does not change this rover model or assert flight compatibility.
+            The code-built rover is a conceptual illustration. Presets do not
+            assert flight compatibility or change the geometry.
           </p>
         </div>
         <div class="rover-control-group">
@@ -736,7 +783,8 @@
 
   <footer>
     <span>OTHERWORLD ATLAS</span>
-    <span>Earth environments · Off-world exploration</span>
+    <span>Grid climate: TerraClimate 2025 · elevation: WorldClim 2.1</span>
+    <a href="https://hackathon1-private.vercel.app" target="_blank" rel="noopener noreferrer">LIVE DEMO ↗</a>
     <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
       target="_blank" rel="noopener noreferrer">NASA 3D Earth model</a>
   </footer>
@@ -744,5 +792,6 @@
   <script type="module"
     src="https://unpkg.com/@google/model-viewer@1.10.1/dist/model-viewer.js"></script>
   <script src="app.js"></script>
+  <script type="module" src="rover.js"></script>
 </body>
 </html>

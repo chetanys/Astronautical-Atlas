@@ -859,6 +859,42 @@ function renderAnalogCatalog() {
   });
 }
 
+function renderGridMetadata(metadata) {
+  const summary = $("gridMetadataSummary");
+  const sourceList = $("gridSourceList");
+  if (!summary || !sourceList) return;
+
+  const resolutionKm = metadata.resolutionMeters / 1000;
+  const nasa = metadata.nasaLayerCoverage ?? {};
+  const nasaCells = [
+    ["MODIS MOD11A2 temperature", nasa.modisTemperatureCells ?? 0],
+    ["NASADEM elevation", nasa.nasademElevationCells ?? 0],
+    ["NASADEM slope", nasa.nasademSlopeCells ?? 0]
+  ];
+  const activeNasa = nasaCells.filter(([, count]) => count > 0);
+  summary.textContent =
+    `${metadata.count.toLocaleString()} source-covered land cells · ` +
+    `approximately ${resolutionKm.toFixed(0)} km equal-area · ` +
+    `${metadata.sourcePeriod}. ` +
+    (activeNasa.length
+      ? `NASA layer coverage: ${activeNasa.map(([name, count]) =>
+        `${name} ${Number(count).toLocaleString()} cells`
+      ).join(", ")}.`
+      : "No NASADEM or MODIS layers are active in the checked-in ranking grid.");
+
+  sourceList.replaceChildren();
+  metadata.citations.forEach(citation => {
+    const item = document.createElement("li");
+    item.textContent = citation;
+    sourceList.appendChild(item);
+  });
+  if (!metadata.citations.length) {
+    const item = document.createElement("li");
+    item.textContent = "The active grid metadata does not include source citations.";
+    sourceList.appendChild(item);
+  }
+}
+
 async function loadKnownSiteValidation() {
   const status = $("knownSitesStatus");
   const rows = $("knownSitesRows");
@@ -915,10 +951,12 @@ async function loadKnownSiteValidation() {
     const failed = report.validation.filter(
       site => !site.test.passesValidation
     ).length;
+    const passed = report.validation.length - failed;
     status.textContent =
       `${report.validation.length} approximate-coordinate checks · ` +
       `${report.earthGrid.pointCount.toLocaleString()} Earth cells · ` +
-      `${failed} of ${report.validation.length} checks failed feature or one-cell distance limits.`;
+      `${passed} pass · ${failed} fail (feature threshold or one-cell distance limit). ` +
+      "These are limited sanity checks, not independent validation.";
     $("weightSensitivityStatus").textContent =
       `Weight sensitivity: minimum top-20 overlap under individual ±20% weight changes ` +
       `${report.weightSensitivity.minimumTop20OverlapPercent.toFixed(0)}%. ` +
@@ -1127,7 +1165,7 @@ function selectMarsAnchor() {
   $("marsReferenceStatus").textContent =
     `${region.name}: copied available numeric targets (${applied.join(", ") || "none"}). ` +
     `MOLA slope ${formatReferenceValue(region.molaSlopeDegrees, "°", 2)} is reference-only ` +
-    "because its 0.25° source pixel spacing differs from the 15 km Earth slope baseline. " +
+    "because its approximately 27.8 km north-south source spacing differs from the approximately 15 km equal-area Earth grid. " +
     "Other fields are not measured in the Earth grid.";
 }
 
@@ -1212,6 +1250,13 @@ function initGridSearch() {
       $("gridDataDisclaimer").textContent = hasNasaLayers
         ? "This build includes NASA MODIS surface-temperature and NASADEM terrain layers where valid; see the source coverage and fallback details below. Results are screening candidates, not verified analogs or mission-planning data."
         : "The checked-in grid uses TerraClimate 2025 climate plus WorldClim 2.1 elevation. Rebuild with the documented NASA export to add NASA layers. Results are screening candidates, not verified analogs or mission-planning data.";
+      renderGridMetadata({
+        count: event.data.count,
+        resolutionMeters: event.data.resolutionMeters,
+        sourcePeriod: event.data.sourcePeriod,
+        citations: event.data.citations,
+        nasaLayerCoverage: nasaCoverage
+      });
       $("gridSourceDetails").textContent = event.data.citations.length
         ? `${coverageNote}${nasaCoverageNote} Sources: ${event.data.citations.join(" · ")}`
         : `${coverageNote}${nasaCoverageNote} Source citations were not included with this grid.`;
@@ -1642,62 +1687,37 @@ $("riskReviewCandidate").addEventListener("change", () => {
 $("roverPreset").addEventListener("change", () => {
   $("roverPresetNote").textContent =
     $("roverPreset").value === "perseverance"
-      ? "Reference visual: the Perseverance assembly. The scenario preset does not change this rover model or assert flight compatibility."
-      : "Conceptual lunar-scout scenario only. The Perseverance model remains a visual stand-in; no second rover design or verified capability is represented.";
+      ? "Perseverance-inspired scenario label only. The code-built illustration does not reproduce flight hardware or assert compatibility."
+      : "Conceptual lunar-scout scenario only. The same illustrative geometry is shown; no second rover design or verified capability is represented.";
 });
 
-const roverModel = $("roverModel");
-const roverModelFallback = $("roverModelFallback");
-
-function changeRoverOrbit(thetaDelta, phi = null) {
-  if (!roverModel.loaded) return;
-  const orbit = roverModel.getCameraOrbit();
-  const nextTheta = orbit.theta + thetaDelta;
-  const nextPhi = phi === null ? orbit.phi : phi;
-  roverModel.setAttribute(
-    "camera-orbit",
-    `${nextTheta}rad ${nextPhi}rad ${orbit.radius}m`
-  );
+function controlRoverView(action, value = 0) {
+  document.dispatchEvent(new CustomEvent("rover-view", {
+    detail: { action, value }
+  }));
 }
 
 $("roverViewLeft").addEventListener("click", () => {
-  changeRoverOrbit(-Math.PI / 4);
+  controlRoverView("rotate", -Math.PI / 4);
 });
 
 $("roverViewRight").addEventListener("click", () => {
-  changeRoverOrbit(Math.PI / 4);
+  controlRoverView("rotate", Math.PI / 4);
 });
 
 $("roverViewTop").addEventListener("click", () => {
-  changeRoverOrbit(0, 0.12);
+  controlRoverView("top");
 });
 
 $("roverViewReset").addEventListener("click", () => {
-  if (roverModel.loaded) {
-    roverModel.setAttribute("camera-orbit", "35deg 70deg 5m");
-  }
+  controlRoverView("reset");
 });
 
 $("roverAutoRotate").addEventListener("click", event => {
   const button = event.currentTarget;
   const enabled = button.getAttribute("aria-pressed") !== "true";
   button.setAttribute("aria-pressed", String(enabled));
-  roverModel.toggleAttribute("auto-rotate", enabled);
-});
-
-roverModel.addEventListener("error", () => {
-  roverModelFallback.classList.remove("hidden");
-});
-
-roverModel.addEventListener("load", () => {
-  roverModelFallback.classList.add("hidden");
-  roverModel.setAttribute("camera-controls", "");
-});
-
-$("retryRoverModel").addEventListener("click", () => {
-  const modelUrl = new URL(roverModel.getAttribute("src"), document.baseURI);
-  modelUrl.searchParams.set("retry", String(Date.now()));
-  roverModel.src = modelUrl.href;
+  controlRoverView("autoRotate", enabled);
 });
 
 $("showAllBtn").addEventListener("click", () => {

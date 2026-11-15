@@ -1,4 +1,5 @@
 .vercel
 .env*
+.venv/
 data/raw/
 data/processed/
