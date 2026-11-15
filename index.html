@@ -515,14 +515,16 @@
           </p>
           <p class="grid-climate-status">
             Sampled around the cell center; not a 15 km tile mean. Context only,
-            and does not change ranking.
+            and does not change ranking. ORNL responses can be slow; each request
+            times out after 90 seconds and can be retried.
           </p>
           <div id="gridModisMetrics" class="grid-power-metrics hidden"></div>
           <button id="retryGridModis" class="secondary-action hidden" type="button">
             RETRY LIVE MODIS
           </button>
           <p id="topTenModisStatus" class="grid-climate-status">
-            Top-ten MODIS requests are opt-in: four requests per selected cell.
+            Top-ten MODIS requests are opt-in and processed one cell at a time:
+            four requests per cell, each with a 90-second timeout.
           </p>
           <button id="loadTopTenModis" class="secondary-action" type="button" disabled>
             LOAD MODIS FOR TOP 10

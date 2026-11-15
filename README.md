@@ -63,9 +63,11 @@ MODIS availability and latency depend on ORNL DAAC. A production check on
 November 15, 2026 returned valid HTTP 200 payloads for all four selected-cell
 samples; the requests took roughly 47–55 seconds each, so this is not an
 instant lookup. On upstream failure the app shows an unavailable state and
-offers a retry, without substituting values. The proxy accepts only the two
-configured date windows and day/night LST bands, validates coordinates, and
-caches successful upstream responses for one day.
+offers a retry, without substituting values. Each browser request has a
+90-second timeout; the opt-in top-ten workflow processes one candidate at a
+time, so it may take several minutes. The proxy accepts only the two configured
+date windows and day/night LST bands, validates coordinates, and caches
+successful upstream responses for one day.
 
 For an offline AppEEARS fallback, download the top-ten coordinate file with
 **Export top 10 sites JSON**, then run:

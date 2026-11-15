@@ -26,6 +26,7 @@ const MODIS_WINDOWS = [
   ["A2023001", "A2023073"],
   ["A2023177", "A2023249"]
 ];
+const MODIS_REQUEST_TIMEOUT_MS = 90_000;
 let selectedGridResult = null;
 const gridResultRows = new Map();
 let activeClimateKey = null;
@@ -213,13 +214,29 @@ async function fetchModisWindow(lat, lon, band, startDate, endDate) {
     band,
     window: `${startDate}:${endDate}`
   }).toString();
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" }
-  });
-  if (!response.ok) {
-    throw new Error(`MODIS request failed with status ${response.status}.`);
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    MODIS_REQUEST_TIMEOUT_MS
+  );
+  let payload;
+  try {
+    const response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`MODIS request failed with status ${response.status}.`);
+    }
+    payload = await response.json();
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("MODIS request timed out after 90 seconds.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-  const payload = await response.json();
   const scale = Number.parseFloat(payload.scale ?? payload.header?.scale ?? "0.02");
   if (!Number.isFinite(scale) || scale <= 0 || !Array.isArray(payload.subset)) {
     throw new Error("ORNL MODIS response has an invalid scale or subset.");
@@ -387,7 +404,9 @@ async function loadModisForTopTen() {
   const results = activeResults.slice(0, 10);
   if (!results.length) return;
   button.disabled = true;
-  status.textContent = `Loading MODIS for ${results.length} results · four API requests per cell…`;
+  status.textContent =
+    `Loading MODIS for ${results.length} results · four requests per cell, ` +
+    "processed one cell at a time; each request may take up to 90 seconds…";
   let completed = 0;
   let unavailable = 0;
   for (const result of results) {
@@ -495,7 +514,7 @@ function renderGridResults(results) {
   $("exportTopSites").disabled = results.length === 0;
   $("loadTopTenModis").disabled = results.length === 0;
   $("topTenModisStatus").textContent =
-    "Top-ten MODIS requests are opt-in: four requests per selected cell.";
+    "Top-ten MODIS requests are opt-in: four requests per cell, processed one cell at a time; each request may take up to 90 seconds.";
   gridHasResults = results.length > 0;
   renderAnalogCatalog();
   $("gridMapHint").classList.toggle("hidden", gridHasResults);
@@ -527,7 +546,7 @@ function clearGridResults() {
   $("retryGridModis").classList.add("hidden");
   $("loadTopTenModis").disabled = true;
   $("topTenModisStatus").textContent =
-    "Top-ten MODIS requests are opt-in: four requests per selected cell.";
+    "Top-ten MODIS requests are opt-in: four requests per cell, processed one cell at a time; each request may take up to 90 seconds.";
   renderAnalogCatalog();
   $("gridMapHint").classList.remove("hidden");
   $("gridMapTip").textContent =
