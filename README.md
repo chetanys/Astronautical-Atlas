@@ -357,7 +357,7 @@ The project has two parts that must run simultaneously: the **FastAPI backend** 
 
 **Python version note:** The API source uses Python 3.10 union type syntax, so use Python 3.10 or later, despite the prerequisite line in the supplied quick-start text below.
 
-> **Prerequisites:** Python 3.9 or later, `pip`, and `git`.
+> **Prerequisites:** Python 3.9 or later, `pip`, `uv` and `git`.
 
 ### Step 1 — Clone the repository
 
