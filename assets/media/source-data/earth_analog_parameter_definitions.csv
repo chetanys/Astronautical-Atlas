@@ -1,0 +1,99 @@
+sno,Category,Parameter,Statistic,Unit,Definition
+,Site,Place name,value,text,Name of the analog location.
+,Site,Terrain type,value,text,Terrain class of the location.
+,Site,Country and region,value,text,Country and region of the location.
+,Study area,Latitude range,min,°,Southern limit of the study area.
+,Study area,Latitude range,max,°,Northern limit of the study area.
+,Study area,Longitude range,min,°,Western limit of the study area.
+,Study area,Longitude range,max,°,Eastern limit of the study area.
+,Study area,Central latitude,value,°,Latitude of the centre of the study area.
+,Study area,Central longitude,value,°,Longitude of the centre of the study area.
+,Study area,Radius,value,km,Radius of the circular study area.
+,Study area,Area,value,km²,Size of the study area.
+,Topography,Elevation,min,m,Surface elevation within the study area. Statistic: Lowest value in the study area.
+,Topography,,max,,Surface elevation within the study area. Statistic: Highest value in the study area.
+,Topography,,mean,,Surface elevation within the study area. Statistic: Average value in the study area.
+,Topography,Relief,value,,Height difference across the study area (max elevation minus min elevation).
+,Topography,Slope,min,°,Terrain slope within the study area. Statistic: Lowest value in the study area.
+,Topography,,max,,Terrain slope within the study area. Statistic: Highest value in the study area.
+,Topography,,mean,,Terrain slope within the study area. Statistic: Average value in the study area.
+,Atmosphere,Temperature,min,°C,Temperature within the study area (surface or air not specified). Statistic: Lowest value in the study area.
+,Atmosphere,,max,,Temperature within the study area (surface or air not specified). Statistic: Highest value in the study area.
+,Atmosphere,,mean,,Temperature within the study area (surface or air not specified). Statistic: Average value in the study area.
+,Atmosphere,Pressure,min,Pa,Atmospheric pressure within the study area. Statistic: Lowest value in the study area.
+,Atmosphere,,max,,Atmospheric pressure within the study area. Statistic: Highest value in the study area.
+,Atmosphere,,mean,,Atmospheric pressure within the study area. Statistic: Average value in the study area.
+,Atmosphere,Humidity,min,ppr-um,Humidity within the study area. Statistic: Lowest value in the study area.
+,Atmosphere,,max,,Humidity within the study area. Statistic: Highest value in the study area.
+,Atmosphere,,mean,,Humidity within the study area. Statistic: Average value in the study area.
+,Atmosphere,Wind speed,min,m/s,Wind speed within the study area. Statistic: Lowest value in the study area.
+,Atmosphere,,max,,Wind speed within the study area. Statistic: Highest value in the study area.
+,Atmosphere,,mean,,Wind speed within the study area. Statistic: Average value in the study area.
+,Atmosphere,Radiation,min,mSv/day,Radiation within the study area (type not specified). Statistic: Lowest value in the study area.
+,Atmosphere,,max,,Radiation within the study area (type not specified). Statistic: Highest value in the study area.
+,Atmosphere,,mean,,Radiation within the study area (type not specified). Statistic: Average value in the study area.
+,Surface,Thermal inertia,min,SI,Thermal inertia of the surface material. Statistic: Lowest value in the study area.
+,Surface,,max,,Thermal inertia of the surface material. Statistic: Highest value in the study area.
+,Surface,,mean,,Thermal inertia of the surface material. Statistic: Average value in the study area.
+,Mineralogy,FeO abundance,min,wt%,"Abundance of FeO in surface material, in weight percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of FeO in surface material, in weight percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of FeO in surface material, in weight percent. Statistic: Average value in the study area."
+,Mineralogy,TiO₂ abundance,min,,"Abundance of TiO₂ in surface material, in weight percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of TiO₂ in surface material, in weight percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of TiO₂ in surface material, in weight percent. Statistic: Average value in the study area."
+,Mineralogy,MgO abundance,min,,"Abundance of MgO in surface material, in weight percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of MgO in surface material, in weight percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of MgO in surface material, in weight percent. Statistic: Average value in the study area."
+,Mineralogy,Al₂O₃ abundance,min,,"Abundance of Al₂O₃ in surface material, in weight percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of Al₂O₃ in surface material, in weight percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of Al₂O₃ in surface material, in weight percent. Statistic: Average value in the study area."
+,Mineralogy,CaO abundance,min,,"Abundance of CaO in surface material, in weight percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of CaO in surface material, in weight percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of CaO in surface material, in weight percent. Statistic: Average value in the study area."
+,Mineralogy,Olivine,min,,"Abundance of olivine in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of olivine in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of olivine in surface material, in percent. Statistic: Average value in the study area."
+,Mineralogy,Pyroxene,min,,"Abundance of pyroxene in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of pyroxene in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of pyroxene in surface material, in percent. Statistic: Average value in the study area."
+,Mineralogy,Plagioclase,min,,"Abundance of plagioclase in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of plagioclase in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of plagioclase in surface material, in percent. Statistic: Average value in the study area."
+,Mineralogy,Clays / phyllosilicates,min,,"Abundance of clay and phyllosilicate minerals in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of clay and phyllosilicate minerals in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of clay and phyllosilicate minerals in surface material, in percent. Statistic: Average value in the study area."
+,Mineralogy,Sulfates,min,,"Abundance of sulfate minerals in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of sulfate minerals in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of sulfate minerals in surface material, in percent. Statistic: Average value in the study area."
+,Mineralogy,"Carbonates, chlorides, silica",min,,"Abundance of carbonate, chloride and silica minerals in surface material, in percent. Statistic: Lowest value in the study area."
+,Mineralogy,,max,,"Abundance of carbonate, chloride and silica minerals in surface material, in percent. Statistic: Highest value in the study area."
+,Mineralogy,,mean,,"Abundance of carbonate, chloride and silica minerals in surface material, in percent. Statistic: Average value in the study area."
+,Rock profile,Sedimentary rock share,min,%,Share of the study area underlain by sedimentary rock. Statistic: Lowest value in the study area.
+,Rock profile,,max,,Share of the study area underlain by sedimentary rock. Statistic: Highest value in the study area.
+,Rock profile,,mean,,Share of the study area underlain by sedimentary rock. Statistic: Average value in the study area.
+,Rock profile,Igneous rock share,min,,Share of the study area underlain by igneous rock. Statistic: Lowest value in the study area.
+,Rock profile,,max,,Share of the study area underlain by igneous rock. Statistic: Highest value in the study area.
+,Rock profile,,mean,,Share of the study area underlain by igneous rock. Statistic: Average value in the study area.
+,Rock profile,Metamorphic rock share,min,,Share of the study area underlain by metamorphic rock. Statistic: Lowest value in the study area.
+,Rock profile,,max,,Share of the study area underlain by metamorphic rock. Statistic: Highest value in the study area.
+,Rock profile,,mean,,Share of the study area underlain by metamorphic rock. Statistic: Average value in the study area.
+,Roughness,Roughness rank,rank,1 to 5 rank (no unit),"1 = smoothest, 5 = roughest. Quintiles across the 30 LQs using the mean slope on a 1° grid."
+,Daytime hours,Daytime hours at Ls 90,min,h,Length of the daytime period at solar longitude Ls 90°. Statistic: Lowest value in the study area.
+,Daytime hours,,max,,Length of the daytime period at solar longitude Ls 90°. Statistic: Highest value in the study area.
+,Daytime hours,,mean,,Length of the daytime period at solar longitude Ls 90°. Statistic: Average value in the study area.
+,Daytime hours,Daytime hours at Ls 270,min,,Length of the daytime period at solar longitude Ls 270°. Statistic: Lowest value in the study area.
+,Daytime hours,,max,,Length of the daytime period at solar longitude Ls 270°. Statistic: Highest value in the study area.
+,Daytime hours,,mean,,Length of the daytime period at solar longitude Ls 270°. Statistic: Average value in the study area.
+,Ice and water,Ice percentage,min,%,Percent of the study area covered by ice or snow. Statistic: Lowest value in the study area.
+,Ice and water,,max,,Percent of the study area covered by ice or snow. Statistic: Highest value in the study area.
+,Ice and water,,mean,,Percent of the study area covered by ice or snow. Statistic: Average value in the study area.
+,Ice and water,Water percentage,min,%,Percent of the study area covered by surface water. Statistic: Lowest value in the study area.
+,Ice and water,,max,,Percent of the study area covered by surface water. Statistic: Highest value in the study area.
+,Ice and water,,mean,,Percent of the study area covered by surface water. Statistic: Average value in the study area.
+,Activity,Tectonic activity share,min,%,Share of the study area showing tectonic activity. Statistic: Lowest value in the study area.
+,Activity,,max,,Share of the study area showing tectonic activity. Statistic: Highest value in the study area.
+,Activity,,mean,,Share of the study area showing tectonic activity. Statistic: Average value in the study area.
+,Activity,Volcanic activity share,min,,Share of the study area showing volcanic activity. Statistic: Lowest value in the study area.
+,Activity,,max,,Share of the study area showing volcanic activity. Statistic: Highest value in the study area.
+,Activity,,mean,,Share of the study area showing volcanic activity. Statistic: Average value in the study area.
+,Geology,Geologic period rank,rank,Integer 1 to 5 (no unit),"Dominant mapped geological period in the study area, by GIS mapped area. Scale: 1 = Pre-Nectarian (>3.92 Ga), 2 = Nectarian (3.92–3.85 Ga), 3 = Imbrian (3.85–3.16 Ga), 4 = Eratosthenian (3.16–0.8 Ga), 5 = Copernican (0.8 Ga to present)."

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Astronautical Atlas | Moon &amp; Mars Explorer</title>
+  <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" data-page="homeView">
+      <span class="logo"><img src="./assets/media/atlas-mark.png" alt=""></span>
+      <span>ASTRONAUTICAL <b>ATLAS</b>
+        <small>PLANETARY ANALOG EXPLORER</small>
+      </span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main navigation">
+      <button class="nav-link active" type="button" data-page="homeView">HOME</button>
+      <button class="nav-link" type="button" data-page="servicesView">SERVICES</button>
+      <button class="nav-link" type="button" data-page="guideView">GUIDE</button>
+      <button class="nav-link" type="button" data-page="atlasView">APPLICATION</button>
+      <button class="nav-link" type="button" data-page="analogsView">ANALOGS</button>
+      <button class="nav-link" type="button" data-page="teamView">TEAM</button>
+    </nav>
+
+    <div class="modes hidden">
+      <button id="moonBtn" class="mode btn-mission active">MOON MODE</button>
+      <button id="marsBtn" class="mode btn-mission">MARS MODE</button>
+    </div>
+
+    <div class="status"><span></span> BROWSER-BASED · OPEN DATA</div>
+  </header>
+
+  <main id="homeView" class="page-view landing-view">
+    <section class="landing-hero">
+      <div class="landing-hero-copy">
+        <small class="landing-eyebrow">NASA APPS</small>
+        <h1>Otherworld<br>Atlas</h1>
+        <p>
+          The Otherworld Atlas is an interactive three-dimensional web application
+          which contrasts terrestrial sites with lunar and martian analogues by
+          combining planetary illumination analysis with NASA's real world climate data.
+        </p>
+        <button class="landing-cta" type="button" data-page="atlasView">ENTER THE SITE</button>
+      </div>
+
+      <div class="landing-hero-media">
+        <img id="landingWorldImage" class="landing-world-image"
+          src="./assets/media/landing-earth.jpg"
+          alt="Earth photographed during the Apollo 17 mission">
+        <div class="landing-worlds" role="group" aria-label="Preview a world">
+          <button class="world-chip active" type="button" data-world="earth"
+            aria-pressed="true">EARTH</button>
+          <button class="world-chip" type="button" data-world="moon"
+            aria-pressed="false">MOON</button>
+          <button class="world-chip" type="button" data-world="mars"
+            aria-pressed="false">MARS</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="landing-highlights">
+      <div><strong>Explore</strong><span>3D Earth Globe</span></div>
+      <div><strong>Compare</strong><span>Moon &amp; Mars Modes</span></div>
+      <div><strong>Observe</strong><span>NASA POWER · 2025 Climate</span></div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-head">
+        <small class="landing-eyebrow">01 / KEY FEATURES</small>
+        <h2>A map beyond our world.</h2>
+      </div>
+      <div class="landing-features">
+        <ol class="landing-feature-list">
+          <li><b>01</b><p><strong>3D Earth Globe:</strong> Displays analog sites on a locally hosted NASA 3D Earth model.</p></li>
+          <li><b>02</b><p><strong>Moon &amp; Mars Modes:</strong> Compares Earth locations against lunar and Martian environments.</p></li>
+          <li><b>03</b><p><strong>Flexible Navigation:</strong> Opens profiles via globe markers.</p></li>
+          <li><b>04</b><p><strong>Filters &amp; JSON Export:</strong> Filters map locations and exports site profiles.</p></li>
+          <li><b>05</b><p><strong>NASA POWER 2025 Climate:</strong> Loads live 2025 daily averages for temperature, wind speed, and solar radiation.</p></li>
+        </ol>
+        <figure class="landing-figure">
+          <img src="./assets/media/landing-lrv.jpg"
+            alt="Apollo Lunar Roving Vehicle on the Moon">
+          <figcaption>Apollo Lunar Roving Vehicle</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="landing-section">
+      <div class="landing-section-head">
+        <small class="landing-eyebrow">02 / COLLABORATORS</small>
+        <h2>The people<br>mapping elsewhere.</h2>
+      </div>
+      <ul class="landing-collaborators">
+        <li><span class="collaborator-initials">CY</span><div><strong>Chetan YS</strong><span>Bengaluru, Karnataka</span></div></li>
+        <li><span class="collaborator-initials">JP</span><div><strong>Jiana Parmar</strong><span>Mumbai, Maharashtra</span></div></li>
+        <li><span class="collaborator-initials">RS</span><div><strong>Rayyan Sheikh</strong><span>Faridabad, Haryana</span></div></li>
+        <li><span class="collaborator-initials">DZ</span><div><strong>Dhiaan Zaveri</strong><span>Mumbai, Maharashtra</span></div></li>
+        <li><span class="collaborator-initials">VD</span><div><strong>Vanshika Deorukhkar</strong><span>Mumbai, Maharashtra</span></div></li>
+        <li><span class="collaborator-initials">AS</span><div><strong>Angel Saini</strong><span>Faridabad, Haryana</span></div></li>
+      </ul>
+    </section>
+
+    <section class="landing-closing">
+      <h2>Step onto another world.</h2>
+      <button class="landing-cta" type="button" data-page="atlasView">ENTER THE SITE</button>
+    </section>
+  </main>
+
+  <main id="servicesView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">WHAT ASTRONAUTICAL ATLAS DOES</small>
+      <h1>From a mission question to an Earth field candidate.</h1>
+      <p>One lightweight, explainable workflow for exploring Earth environments as Moon and Mars analogs.</p>
+    </section>
+    <section class="service-grid">
+      <article class="feature-card"><span>01</span><h2>Requirement-led search</h2><p>Choose environmental targets and scan a land-only, approximately 15 km equal-area grid for ranked cells. Results are computed in a browser Web Worker.</p></article>
+      <article class="feature-card"><span>02</span><h2>Map-first inspection</h2><p>Review candidate coordinates on a 3D Earth and open locations in a map for further terrain inspection.</p></article>
+      <article class="feature-card"><span>03</span><h2>Mapped quadrangle lookup</h2><p>Select a scientific MC or LQ quadrangle on a flat equirectangular chart, then send its extent to the analogue model.</p></article>
+      <article class="feature-card"><span>04</span><h2>Source-aware results</h2><p>Climate, elevation, grid resolution, formulas and data limitations are shown so users can judge what a match does—and does not—mean.</p></article>
+    </section>
+    <section class="service-cta">
+      <div><small class="eyebrow">QUADRANGLE API</small><h2>Model service</h2><p>The analogue ranking runs as a local FastAPI service in the <code>api</code> folder and returns ranked Earth analogues for the selected quadrangle.</p></div>
+      <button class="btn-mission" type="button" data-page="atlasView">USE THE APPLICATION</button>
+    </section>
+  </main>
+
+  <main id="guideView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">QUICK START</small>
+      <h1>A simple guide to the analog search.</h1>
+      <p>You do not need a GIS background to try a search. Follow these steps, then treat the results as candidates to investigate.</p>
+    </section>
+    <section class="guide-steps">
+      <article><b>01</b><div><h2>Choose Moon or Mars</h2><p>This sets the exploration context. It does not imply Earth can reproduce the full off-world environment.</p></div></article>
+      <article><b>02</b><div><h2>Select a mapped quadrangle</h2><p>The left panel shows the flat LQ or MC chart. Click a cell or pick a quadrangle from the list; its latitude/longitude extent is sent to the analogue model.</p></div></article>
+      <article><b>03</b><div><h2>Scan the land grid</h2><p>A background worker scores roughly 575,000 land tiles at approximately 15 km equal-area resolution and returns the best candidates without blocking the interface.</p></div></article>
+      <article><b>04</b><div><h2>Inspect candidate locations</h2><p>Choose a ranked result or globe marker to focus the map. A 0.25° cell is broad regional context—not a rover traversability map.</p></div></article>
+      <article><b>05</b><div><h2>Read where the analogue breaks</h2><p>Every candidate opens with a field-by-field breakdown: which parameters hold, which drift into caution, which fail outright, and which fields cannot be scored at all because no comparable Earth measurement exists.</p></div></article>
+      <article><b>06</b><div><h2>Plan the missing tests</h2><p>Confirm wheel traction, dust, thermal-vacuum, power and communications behavior with dedicated test rigs and validated data.</p></div></article>
+    </section>
+    <button class="btn-mission" type="button" data-page="atlasView">START EXPLORING</button>
+    <section class="guide-example">
+      <div>
+        <small class="eyebrow">OPTIONAL WALKTHROUGH</small>
+        <h2>Rover field-planning example</h2>
+        <p>A visual example only—not official data, an engineering simulation, or a rover qualification result.</p>
+      </div>
+      <button class="secondary-action" type="button" data-page="roverView">
+        OPEN EXAMPLE USE CASE
+      </button>
+    </section>
+  </main>
+
+  <main id="analogsView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">CANDIDATES, NOT CERTIFICATIONS</small>
+      <h1>Grid results and researched references.</h1>
+      <p>Global scan results are ranked from the four Earth-grid fields you selected. Curated Moon and Mars profiles are separate, source-linked references; they never change the scan or its ranking.</p>
+    </section>
+    <div class="catalog-notice">
+      <strong>Grid matches are screening candidates—not named analog sites</strong>
+      <p>Each result is a broad grid cell. Ranking is not independent site validation, a mission recommendation, or proof that Earth reproduces off-world conditions.</p>
+    </div>
+    <section aria-labelledby="analogCandidatesHeading">
+      <h2 id="analogCandidatesHeading" class="analog-section-title">Latest global scan</h2>
+      <p id="analogsCandidateStatus" class="analog-status" role="status" aria-live="polite">Run a global scan to see ranked cells here.</p>
+      <ol id="analogsCatalog" class="analogs-grid"></ol>
+    </section>
+    <details id="curatedProfilePanel" class="formula-card curated-profile-panel" open>
+      <summary>CURATED MOON / MARS PROFILES · NOT SCORED</summary>
+      <p>Named profiles are taken only from the supplied research workbooks where included fields have a cited source and an explicit measured label. Browse 20 names at a time; these profiles are not global-scan results or current Earth climate data. Some lunar and Martian citations are historical foundational research; publication and observation dates remain in the cited records.</p>
+      <div class="curated-profile-browser-controls">
+        <label class="curated-profile-label" for="curatedProfileSearch">FIND A PROFILE</label>
+        <input id="curatedProfileSearch" type="search" placeholder="Search named regions…" disabled>
+        <label class="curated-profile-label" for="curatedProfileBody">BODY</label>
+        <select id="curatedProfileBody" disabled>
+          <option value="all">Moon + Mars</option>
+          <option value="Mars">Mars</option>
+          <option value="Moon">Moon</option>
+        </select>
+      </div>
+      <p id="curatedProfileStatus" role="status" aria-live="polite">Loading cited reference profiles…</p>
+      <div id="curatedProfileList" class="curated-profile-list" aria-label="Named researched profiles"></div>
+      <div class="curated-profile-pagination">
+        <button id="curatedProfilePrevious" class="secondary-action" type="button" disabled>← PREVIOUS 20</button>
+        <span id="curatedProfilePageStatus" aria-live="polite"></span>
+        <button id="curatedProfileNext" class="secondary-action" type="button" disabled>NEXT 20 →</button>
+      </div>
+      <article id="curatedProfileDetails" class="curated-profile-details hidden">
+        <h3 id="curatedProfileName"></h3>
+        <p id="curatedProfileSummary"></p>
+        <dl id="curatedProfileParameters" class="curated-profile-parameters"></dl>
+        <details id="curatedProfileSourcesPanel">
+          <summary>Show profile citations</summary>
+          <p id="curatedProfileSourceNote" class="curated-profile-source-note"></p>
+          <ul id="curatedProfileSources"></ul>
+        </details>
+      </article>
+      <details class="curated-profile-exclusions">
+        <summary>Why some supplied spreadsheet fields are not included</summary>
+        <ul id="curatedProfileExclusions"></ul>
+      </details>
+    </details>
+    <section class="formula-card">
+      <small class="eyebrow">GRID SCORING</small>
+      <h2>How the current ranking works</h2>
+      <p>The browser worker compares the active temperature, elevation, slope and aridity targets with the corresponding Earth-grid fields. User weights control each field's contribution; a zero weight excludes that field. The score is a relative ranking within this dataset—not a probability, qualification score, or claim that a location reproduces lunar or Martian conditions.</p>
+      <a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations ↗</a>
+      <a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 ↗</a>
+    </section>
+  </main>
+
+  <main id="roverView" class="page-view content-view hidden rover-example-view">
+    <section class="page-heading">
+      <small class="eyebrow">EXAMPLE USE CASE · NOT OFFICIAL DATA</small>
+      <h1>A rover field-planning walkthrough.</h1>
+      <p>This visual example shows how a team might use a broad Earth-grid match as a starting point for field questions. It is not a NASA product, validated simulation, site recommendation, or rover qualification result.</p>
+    </section>
+    <section class="rover-example-layout">
+      <div class="rover-example-model">
+        <model-viewer id="roverExampleModel" src="./assets/media/perseverance.glb"
+          alt="Interactive rover model shown as a visual reference only"
+          camera-controls interaction-prompt="none" shadow-intensity="1"
+          exposure="1" camera-orbit="35deg 70deg 5m"
+          min-camera-orbit="auto auto 2m" max-camera-orbit="auto auto 15m"
+          class="rover-example-viewer" reveal="auto"></model-viewer>
+        <div class="rover-example-controls" role="group" aria-label="Rover model view controls">
+          <button class="secondary-action" id="roverExampleReset" type="button">RESET VIEW</button>
+          <button class="secondary-action" id="roverExampleSpin" type="button" aria-pressed="false">AUTO ROTATE</button>
+        </div>
+        <p class="rover-example-credit">Local project model asset · source and redistribution license are not documented here; verify before reuse.</p>
+      </div>
+      <div class="rover-example-notes">
+        <article><span>01</span><h2>Start with a candidate</h2><p>Use a scan result to identify a broad region for follow-up—not to select a landing or traverse route.</p></article>
+        <article><span>02</span><h2>Frame field questions</h2><p>Ask what dedicated measurements are needed for traction, dust, thermal behavior, power, communications, and terrain hazards.</p></article>
+        <article><span>03</span><h2>Validate independently</h2><p>Grid-scale climate and terrain proxies cannot establish wheel performance, safety, or mission readiness.</p></article>
+      </div>
+    </section>
+    <button class="secondary-action" type="button" data-page="guideView">BACK TO GUIDE</button>
+  </main>
+
+  <main id="teamView" class="page-view content-view hidden">
+    <section class="page-heading">
+      <small class="eyebrow">THE TEAM</small>
+      <h1>Six people mapping elsewhere.</h1>
+      <p>Astronautical Atlas was built by a six-person team working out of Bengaluru, Mumbai and Faridabad.</p>
+    </section>
+    <section class="team-grid">
+      <article class="team-card is-lead">
+        <span class="collaborator-initials">CY</span>
+        <div>
+          <small class="team-role">TEAM LEADER</small>
+          <h2>Chetan YS</h2>
+          <p class="team-place">Bengaluru, Karnataka</p>
+        </div>
+      </article>
+      <article class="team-card">
+        <span class="collaborator-initials">DZ</span>
+        <div>
+          <small class="team-role">TEAM</small>
+          <h2>Dhiaan Zaveri</h2>
+          <p class="team-place">Mumbai, Maharashtra</p>
+        </div>
+      </article>
+      <article class="team-card">
+        <span class="collaborator-initials">RS</span>
+        <div>
+          <small class="team-role">TEAM</small>
+          <h2>Rayyan Sheikh</h2>
+          <p class="team-place">Faridabad, Haryana</p>
+        </div>
+      </article>
+      <article class="team-card">
+        <span class="collaborator-initials">JP</span>
+        <div>
+          <small class="team-role">TEAM</small>
+          <h2>Jiana Parmar</h2>
+          <p class="team-place">Mumbai, Maharashtra</p>
+        </div>
+      </article>
+      <article class="team-card">
+        <span class="collaborator-initials">AS</span>
+        <div>
+          <small class="team-role">TEAM</small>
+          <h2>Angel Saini</h2>
+          <p class="team-place">Faridabad, Haryana</p>
+        </div>
+      </article>
+      <article class="team-card">
+        <span class="collaborator-initials">VD</span>
+        <div>
+          <small class="team-role">TEAM</small>
+          <h2>Vanshika Deorukhkar</h2>
+          <p class="team-place">Mumbai, Maharashtra</p>
+        </div>
+      </article>
+    </section>
+    <section class="service-cta">
+      <div>
+        <small class="eyebrow">THE BUILD</small>
+        <h2>Open data, browser-side search.</h2>
+        <p>Climate, elevation and quadrangles come from public NASA, USGS and TerraClimate products. The analogue ranking runs in a small local model service; the grid scan runs entirely in the browser.</p>
+      </div>
+      <button class="btn-mission" type="button" data-page="atlasView">OPEN THE ATLAS</button>
+    </section>
+  </main>
+
+  <main id="atlasView" class="page-view hidden">
+    <aside class="sidebar">
+      <div class="heading">
+        <div>
+          <h1 id="modeTitle">Choose a target</h1>
+        </div>
+      </div>
+
+      <p id="modeDescription" class="muted">
+        Choose a Moon or Mars quadrangle for the primary analogue model, or
+        run the separate global-grid scan below.
+      </p>
+
+      <section id="planet-panel" class="planet-panel" aria-labelledby="planet-map-title">
+        <div class="panel-header">
+          <div>
+            <small class="eyebrow">PRIMARY WORKFLOW · QUADRANGLE ANALOG MODEL</small>
+            <h2 id="planet-map-title">Moon · LQ chart</h2>
+          </div>
+          <div class="planet-selector" role="group" aria-label="Choose the planetary body">
+            <button id="moon-mode" class="planet-mode active" type="button" aria-pressed="true">MOON</button>
+            <button id="mars-mode" class="planet-mode" type="button" aria-pressed="false">MARS</button>
+          </div>
+        </div>
+        <p class="hint">Select a mapped Moon or Mars quadrangle to query the separate workbook-backed Earth-analogue model. This does not change the global scan or its weights.</p>
+
+        <div id="quadrangle-map" class="quadrangle-map" role="group"
+          aria-label="Flat equirectangular map of the selected planet divided into its mapped quadrangles"></div>
+
+        <div class="quadrangle-axes" aria-hidden="true">
+          <span>180°W</span><span>90°W</span><span>0°</span><span>90°E</span><span>180°E</span>
+        </div>
+
+        <p id="quadrangle-hover" class="quadrangle-hover">
+          Hover the map to inspect a quadrangle, or choose one from the list.
+        </p>
+
+        <label class="quadrangle-select-label" for="quadrangleSelect">
+          <span>MAPPED QUADRANGLE</span>
+          <select id="quadrangleSelect">
+            <option value="">Select a quadrangle…</option>
+          </select>
+        </label>
+
+        <div id="quadrangle-info" class="quadrangle-info">
+          <div class="quadrangle-id">
+            <strong id="selected-quadrangle">No quadrangle selected</strong>
+            <span id="selected-quadrangle-name" class="muted"></span>
+          </div>
+          <dl id="quadrangle-facts" class="quadrangle-facts">
+            <div><dt>EXTENT</dt><dd id="quadrangle-extent">--</dd></div>
+            <div><dt>CENTRE</dt><dd id="quadrangle-centre">--</dd></div>
+            <div><dt>BAND</dt><dd id="quadrangle-band">--</dd></div>
+          </dl>
+        </div>
+
+        <button id="run-analysis" class="btn-mission quadrangle-action" type="button" disabled>
+          FIND EARTH ANALOGUES
+        </button>
+        <p id="analysis-status" class="analysis-status" role="status" aria-live="polite">
+          Select a quadrangle, then query the analogue model.
+        </p>
+        <ol id="analogue-results" class="analogue-results"
+          aria-label="Ranked Earth analogues returned by the model"></ol>
+      </section>
+
+      <section class="grid-search" aria-labelledby="gridSearchHeading">
+        <div class="section-heading">
+          <span id="gridSearchHeading">INDEPENDENT GLOBAL SCAN</span>
+          <span class="grid-resolution">LAND · ~15 KM</span>
+        </div>
+        <p class="hint">
+          Set your surface requirements, then scan approximately 15 km equal-area land cells.
+          Results are discovered from the data, not selected from a preset
+          analog list. This browser-side scan is separate from the primary
+          quadrangle analogue model above.
+        </p>
+        <label class="grid-control" for="gridTemperature">
+          <span>MEAN TEMPERATURE</span>
+          <output id="gridTemperatureValue" for="gridTemperature">−10 °C</output>
+        </label>
+        <input class="range" id="gridTemperature" type="range"
+          min="-120" max="50" step="1" value="-10">
+        <label class="grid-control" for="gridElevation">
+          <span>ELEVATION</span>
+          <output id="gridElevationValue" for="gridElevation">1,800 m</output>
+        </label>
+        <input class="range" id="gridElevation" type="range"
+          min="-6000" max="9000" step="50" value="1800">
+        <label class="grid-control" for="gridSlope">
+          <span>SLOPE</span>
+          <output id="gridSlopeValue" for="gridSlope">15°</output>
+        </label>
+        <input class="range" id="gridSlope" type="range"
+          min="0" max="90" step="0.1" value="15">
+        <label class="grid-control" for="gridAridity">
+          <span>ARIDITY · 0 HUMID / 10 ARID</span>
+          <output id="gridAridityValue" for="gridAridity">8 / 10</output>
+        </label>
+        <input class="range" id="gridAridity" type="range"
+          min="0" max="10" step="1" value="8">
+        <details class="parameter-matrix" open>
+          <summary>WEIGHTED PARAMETER MATRIX · 4 EARTH GRID FIELDS</summary>
+          <p>Set importance from 0× (exclude) to 5×. Only these measured grid fields are scoreable; the supplied sheets contain additional reference fields without corresponding Earth-grid data.</p>
+          <div class="mars-table-wrap">
+            <table class="risk-review-table">
+              <thead><tr><th scope="col">PARAMETER</th><th scope="col">TARGET</th><th scope="col">WEIGHT</th><th scope="col">EARTH GRID DATA</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Mean temperature</th><td id="matrixTemperatureTarget">−10 °C</td><td><label class="weight-control" for="weightTemperature"><input id="weightTemperature" type="range" min="0" max="5" step="0.5" value="1"><output id="weightTemperatureValue">1×</output></label></td><td>Available · 2025 annual</td></tr>
+                <tr><th scope="row">Elevation</th><td id="matrixElevationTarget">1,800 m</td><td><label class="weight-control" for="weightElevation"><input id="weightElevation" type="range" min="0" max="5" step="0.5" value="1"><output id="weightElevationValue">1×</output></label></td><td>Available · static</td></tr>
+                <tr><th scope="row">Slope</th><td id="matrixSlopeTarget">15°</td><td><label class="weight-control" for="weightSlope"><input id="weightSlope" type="range" min="0" max="5" step="0.5" value="1"><output id="weightSlopeValue">1×</output></label></td><td>Available · 15 km estimate</td></tr>
+                <tr><th scope="row">Aridity</th><td id="matrixAridityTarget">8 / 10</td><td><label class="weight-control" for="weightAridity"><input id="weightAridity" type="range" min="0" max="5" step="0.5" value="1"><output id="weightAridityValue">1×</output></label></td><td>Available · derived proxy</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+        <button id="gridSearchBtn" class="btn-mission grid-search-button"
+          type="button" disabled>
+          SCAN GLOBAL GRID
+        </button>
+        <p id="gridSearchStatus" class="grid-search-status" role="status"
+          aria-live="polite">
+          Loading global grid data…
+        </p>
+        <ol id="gridResults" class="grid-results"
+          aria-label="Best matching global grid cells"></ol>
+        <section class="modis-panel" aria-labelledby="modisHeading">
+          <small class="eyebrow">NASA MODIS · LIVE CONTEXT</small>
+          <h2 id="modisHeading">Land-surface temperature sample</h2>
+          <p>Optional 1 km MOD11A2 samples for the selected grid cell, from two 2025 seasonal windows. These are contextual observations, not the global scan's air-temperature field and not part of its score.</p>
+          <a href="https://modis.ornl.gov/" target="_blank" rel="noopener noreferrer">ORNL DAAC MODIS subset service ↗</a>
+          <button id="loadSelectedModis" class="secondary-action" type="button" disabled>LOAD FOR SELECTED CELL</button>
+          <button id="loadTopTenModis" class="secondary-action" type="button" disabled>LOAD FOR TOP 10</button>
+          <p id="modisStatus" class="grid-search-status" role="status" aria-live="polite">Select a scan result to request a live sample.</p>
+          <div id="modisMetrics" class="grid-power-metrics hidden"></div>
+        </section>
+        <p id="gridSourceDetails" class="grid-source">
+          Grid source citations will appear here when the data loads.
+        </p>
+        <details class="grid-data-links">
+          <summary>Source data files and citations</summary>
+          <ul>
+            <li><a href="https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M%2CWS2M%2CALLSKY_SFC_SW_DWN&amp;community=AG&amp;longitude=-70.01&amp;latitude=-29.61&amp;start=20250101&amp;end=20251231&amp;format=JSON" target="_blank" rel="noopener noreferrer">NASA POWER daily climate variables · 2025 example query</a></li>
+            <li><a href="https://modis.ornl.gov/" target="_blank" rel="noopener noreferrer">NASA MODIS MOD11A2 1 km surface temperature via ORNL DAAC · 2025 seasonal samples</a></li>
+            <li><a href="https://thredds.northwestknowledge.net/thredds/catalog/TERRACLIMATE_ALL/catalog.html" target="_blank" rel="noopener noreferrer">TerraClimate archive · monthly minimum/maximum temperature, precipitation and PET; 2025 grid inputs</a></li>
+            <li><a href="https://geodata.ucdavis.edu/climate/worldclim/2_1/base/wc2.1_2.5m_elev.zip" target="_blank" rel="noopener noreferrer">WorldClim 2.1 elevation · static SRTM-derived terrain, not a 2025 climate field</a></li>
+            <li><a href="https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg004/megt90n000cb.img" target="_blank" rel="noopener noreferrer">Mars MOLA global topography · static elevation based on 1997–2001 observations</a></li>
+            <li><a href="https://pds-geosciences.wustl.edu/missions/mgs/megdr.html" target="_blank" rel="noopener noreferrer">MOLA archive, product description and resolution options</a></li>
+            <li><a href="https://developers.google.com/earth-engine/datasets/catalog/IDAHO_EPSCOR_TERRACLIMATE" target="_blank" rel="noopener noreferrer">TerraClimate dataset citation and limitations</a></li>
+            <li><a href="https://www.worldclim.org/data/worldclim21.html" target="_blank" rel="noopener noreferrer">WorldClim 2.1 dataset and citation</a></li>
+          </ul>
+        </details>
+      </section>
+    </aside>
+
+    <section class="map-panel">
+      <div class="map-toolbar">
+        <div class="map-buttons">
+          <button id="showAllBtn" class="btn-mission">SHOW ALL</button>
+          <button id="zoomOutBtn" aria-label="Zoom out">−</button>
+          <button id="zoomInBtn" aria-label="Zoom in">+</button>
+        </div>
+      </div>
+
+      <model-viewer
+        id="map"
+        src="./assets/media/earth.glb"
+        poster="https://solarsystem.nasa.gov/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBBaThSIiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--7d74b9a474270365fe6127b548c73ae030610e20/poster_earth.jpg"
+        alt="NASA 3D model of Earth with clickable planetary analog sites"
+        background-color="#05070d"
+        camera-controls
+        camera-orbit="0deg 75deg 1500m"
+        camera-target="0m 0m 0m"
+        min-camera-orbit="auto auto 620m"
+        max-camera-orbit="auto auto 2500m"
+        interaction-prompt="none"
+        exposure="1"
+        shadow-intensity="1"
+        preload
+        reveal="auto"
+      ></model-viewer>
+
+      <div id="globeFallback" class="globe-fallback hidden" role="status">
+        The NASA Earth model could not be loaded.
+        <p id="globeFallbackReason" class="globe-fallback-reason"></p>
+        <button id="retryGlobeModel" class="secondary-action" type="button">RETRY EARTH MODEL</button>
+        <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
+          target="_blank" rel="noopener noreferrer">
+          Open the NASA 3D Earth model ↗
+        </a>
+      </div>
+
+      <div id="gridMapHint" class="grid-map-hint" role="status">
+        Choose your requirements and scan the global grid to place matching
+        locations on the globe.
+      </div>
+
+      <div class="coordinates" id="coordinates">
+        DRAG TO ROTATE · SELECT A QUADRANGLE TO PLOT ANALOGUES
+      </div>
+
+      <div class="legend">
+        <span><i class="legend-dot green"></i> Best scan match</span>
+        <span><i class="legend-dot yellow"></i> Other top-10 matches</span>
+      </div>
+
+      <article id="siteCard" class="site-card hidden">
+        <button id="closeCard" class="close-btn" aria-label="Close">×</button>
+        <small id="siteType" class="eyebrow">ANALOG SITE</small>
+        <h2 id="siteName">Location</h2>
+        <p id="siteLocation" class="muted"></p>
+
+        <div class="score-heading">
+          CONDITION MATCH <strong id="siteScore">--%</strong>
+        </div>
+        <div class="progress"><div id="siteProgress"></div></div>
+
+        <p id="siteDescription" class="description"></p>
+
+        <section class="breakdown" aria-labelledby="breakdownHeading">
+          <div class="breakdown-heading" id="breakdownHeading">
+            WHERE IT BREAKS
+            <span>worst field first</span>
+          </div>
+          <ol id="siteParameters" class="parameter-list"></ol>
+          <p id="breakdownSummary" class="breakdown-summary"></p>
+          <p class="breakdown-note">
+            Screening bands: holds ≥ 70%, caution 40–70%, breaks &lt; 40%. They are
+            fixed cuts on a weighted distance, not measured failure probabilities.
+          </p>
+
+          <div class="breakdown-heading">
+            WHAT CANNOT BE SCORED
+            <span>no comparable Earth value</span>
+          </div>
+          <ul id="siteExcluded" class="excluded-list"></ul>
+        </section>
+        <button id="exportSite" class="export-btn btn-mission" type="button">
+          EXPORT SITE JSON
+        </button>
+
+        <section class="climate-section" aria-labelledby="climateHeading">
+          <div class="climate-heading">
+            <small id="climateHeading" class="eyebrow">NASA POWER · 2025 DAILY CLIMATE</small>
+            <button id="refreshClimate" class="link-btn hidden" type="button">RETRY</button>
+          </div>
+          <p id="climateStatus" role="status" aria-live="polite">
+            Select a site to load its climate data.
+          </p>
+          <div id="climateMetrics" class="metrics hidden"></div>
+          <div id="climateChart" class="climate-chart hidden"></div>
+          <a class="climate-source" href="https://power.larc.nasa.gov/"
+            target="_blank" rel="noopener noreferrer">NASA POWER DATA ↗</a>
+        </section>
+
+        <p class="card-footer">ILLUSTRATIVE SITE PROFILE</p>
+      </article>
+
+      <div id="gridMapTip" class="map-tip">
+        ⓘ Select a quadrangle to plot its Earth analogues.
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>ASTRONAUTICAL ATLAS</span>
+    <span>Earth environments · Off-world exploration</span>
+    <a href="https://solarsystem.nasa.gov/gltf_embed/2393/"
+      target="_blank" rel="noopener noreferrer">NASA 3D Earth model</a>
+  </footer>
+
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer@1.10.1/dist/model-viewer.js"></script>
+  <script src="./assets/js/app.js"></script>
+</body>
+</html>

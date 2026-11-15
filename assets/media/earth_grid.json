@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 2,
+  "projection": "EPSG:6933 (WGS 84 / NSIDC EASE-Grid 2.0 Global)",
+  "cellSizeMeters": 15000,
+  "rows": 979,
+  "columns": 2316,
+  "candidateGridCells": 2267364,
+  "pointCount": 575482,
+  "latitudeCoverage": {
+    "minimum": -82.29022216796875,
+    "maximum": 82.2591552734375
+  },
+  "recordStride": 6,
+  "recordValueOrder": [
+    "latitude",
+    "longitude",
+    "temperature",
+    "elevation",
+    "slope",
+    "aridity"
+  ],
+  "valueOrder": [
+    "temperature",
+    "elevation",
+    "slope",
+    "aridity"
+  ],
+  "units": [
+    "degrees Celsius",
+    "metres",
+    "degrees",
+    "dryness score / 10"
+  ],
+  "scoreScales": {
+    "temperature": 36.93531799316406,
+    "elevation": 2108.090087890625,
+    "slope": 1.2016479969024658,
+    "aridity": 9.90532398223877
+  },
+  "scoreNormalization": "Equal-weight absolute differences divided by each field's 90% observed data spread (95th minus 5th percentile).",
+  "sourcePeriod": "2025 calendar-year climate; static elevation",
+  "landMask": "Valid WorldClim elevation cells; ocean/no-data cells omitted.",
+  "aridityFormula": "10 * clamp(1 - annual precipitation / annual PET, 0, 1)",
+  "slopeMethod": "Derived from elevation regridded to 15 km; local equal-area map-scale factors corrected by latitude. Regional screening only.",
+  "inputBands": {
+    "temperature": {
+      "band": 1,
+      "scale": 1
+    },
+    "elevation": {
+      "band": 1,
+      "scale": 1
+    },
+    "precipitation": {
+      "band": 1,
+      "scale": 1
+    },
+    "pet": {
+      "band": 1,
+      "scale": 1
+    }
+  },
+  "citations": [
+    "TerraClimate (2025), monthly tmin/tmax/ppt/pet, CC0; Abatzoglou et al. (2018), doi:10.1038/sdata.2017.191; direct archive files validated 2026-11-14",
+    "WorldClim 2.1 elevation (2.5 arc-minute), SRTM-derived; Fick and Hijmans (2017), https://www.worldclim.org/data/worldclim21.html; attribution required, commercial redistribution terms to confirm"
+  ]
+}
