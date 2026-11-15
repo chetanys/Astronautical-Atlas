@@ -59,12 +59,13 @@ or a 15 km tile mean. The UI labels it a point-area sample and explicitly says
 it does not alter the grid ranking. The **Load MODIS for top 10** button makes
 the four requests per cell sequentially and only when clicked.
 
-MODIS sampling is implemented but depends on ORNL DAAC availability; the
-service returned HTTP 503 during the latest endpoint test, so live MODIS
-values were not verified at submission time. In that case the app shows an
-unavailable state and offers a retry, without substituting values. The proxy
-accepts only the two configured date windows and day/night LST bands, validates
-coordinates, and caches successful upstream responses for one day.
+MODIS availability and latency depend on ORNL DAAC. A production check on
+November 15, 2026 returned valid HTTP 200 payloads for all four selected-cell
+samples; the requests took roughly 47–55 seconds each, so this is not an
+instant lookup. On upstream failure the app shows an unavailable state and
+offers a retry, without substituting values. The proxy accepts only the two
+configured date windows and day/night LST bands, validates coordinates, and
+caches successful upstream responses for one day.
 
 For an offline AppEEARS fallback, download the top-ten coordinate file with
 **Export top 10 sites JSON**, then run:
